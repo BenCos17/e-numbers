@@ -50,7 +50,8 @@ function renderTable(filter="") {
 document.getElementById('search').addEventListener('input', e=>{
   renderTable(e.target.value.toLowerCase());
 });
-fetch('enumbers.json')
+// Change fetch to use the API endpoint
+fetch('http://localhost:5000/api/enumbers')
   .then(res => res.json())
   .then(data => {
     enumbers = data;

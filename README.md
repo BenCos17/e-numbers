@@ -199,3 +199,45 @@ You can use Postman to interact with the API for adding (POST) or updating (PUT)
 4. **Check the response** for confirmation.
 
 **Tip:** If you cannot edit the Content-Type header, make sure you have selected **raw** and **JSON** in the Body tab. Postman will set the header for you. If you still have issues, try updating Postman or use `curl` as an alternative. 
+
+---
+
+## Deleting an E-number
+
+To delete an E-number, send a DELETE request to the following endpoint, replacing `<code>` with the E-number code you want to remove (URL-encoded if it contains spaces):
+
+```
+DELETE /api/enumbers/<code>
+```
+
+**Example:**
+
+To delete E 999:
+```
+DELETE /api/enumbers/E%20999
+```
+
+### Using Postman to Delete an E-number
+
+1. **Open Postman** and create a new request.
+2. **Set the method** to `DELETE`.
+3. **Set the URL** to:
+   ```
+   http://localhost:5000/api/enumbers/E%20999
+   ```
+   (Replace `E%20999` with the code you want to delete, URL-encoded.)
+4. **No body is required** for this request.
+5. **Click Send** to submit the request.
+6. **Check the response** for confirmation.
+
+**Expected Response:**
+```json
+{
+  "message": "Deleted",
+  "enumber": { "code": "E 999", "name": "Example Additive" }
+}
+```
+
+**Note:**
+- If the E-number does not exist, the API will return a 404 error with a message indicating that the E-number was not found.
+- You must have editing enabled on the server to perform this operation. 

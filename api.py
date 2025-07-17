@@ -4,8 +4,10 @@ import os
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 import argparse
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 EN_FILE = 'enumbers.json'
 
@@ -19,7 +21,7 @@ EDITING_ALLOWED = args.allow_editing
 
 def check_editing_allowed():
     if not EDITING_ALLOWED:
-        abort(403, description="Editing is disabled on this server.")
+        return jsonify({'error': 'Editing is disabled on this server.'}), 403
 
 def load_enumbers():
     with open(EN_FILE, encoding='utf-8') as f:
@@ -143,7 +145,9 @@ def get_enumbers():
 
 @app.route('/api/enumbers', methods=['POST'])
 def create_enumber():
-    check_editing_allowed()
+    denied = check_editing_allowed()
+    if denied:
+        return denied
     global enumbers
     data = request.get_json()
     if not data or 'code' not in data or 'name' not in data:
@@ -156,7 +160,9 @@ def create_enumber():
 
 @app.route('/api/enumbers/<code>', methods=['PUT'])
 def update_enumber(code):
-    check_editing_allowed()
+    denied = check_editing_allowed()
+    if denied:
+        return denied
     global enumbers
     data = request.get_json()
     if not data or 'name' not in data:
@@ -170,7 +176,9 @@ def update_enumber(code):
 
 @app.route('/api/enumbers/<code>', methods=['DELETE'])
 def delete_enumber(code):
-    check_editing_allowed()
+    denied = check_editing_allowed()
+    if denied:
+        return denied
     global enumbers
     for i, e in enumerate(enumbers):
         if e['code'] == code:
