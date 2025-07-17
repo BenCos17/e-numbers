@@ -123,6 +123,37 @@ DELETE /api/enumbers/E%20999
 
 ---
 
+## Running the Python Server and API
+
+To start the API server, follow these steps:
+
+1. **Make sure you have Python installed** on your system. You can download it from the official Python website if needed.
+2. **Navigate to the project directory** in your terminal or command prompt.
+3. **Install the required dependencies** by running the following command:
+   ```bash
+pip install -r requirements.txt
+```
+4. **Run the API server** by executing the following command:
+   ```bash
+python api.py
+```
+5. **Open a web browser** and navigate to `http://localhost:5000/api/enumbers` to access the API.
+
+---
+
+## Running the HTML Server
+
+To start the HTML server, follow these steps:
+
+1. **Navigate to the project directory** in your terminal or command prompt.
+2. **Run the HTML server** by executing the following command:
+   ```bash
+python -m http.server
+```
+3. **Open a web browser** and navigate to `http://localhost:8000/enumbers.html` to access the E-Number Lookup web page.
+
+---
+
 ## Using Postman to Add or Update E-numbers
 
 You can use Postman to interact with the API for adding (POST) or updating (PUT) E-numbers. Here’s how:
