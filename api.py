@@ -3,12 +3,23 @@ import json
 import os
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
+import argparse
 
 app = Flask(__name__)
 
 EN_FILE = 'enumbers.json'
 
 USER_AGENT = "ENumbersApp/1.0 (contact@example.com)"
+
+# Parse command-line argument for editing
+parser = argparse.ArgumentParser()
+parser.add_argument('--allow-editing', action='store_true', help='Allow editing (POST, PUT, DELETE) endpoints')
+args, unknown = parser.parse_known_args()
+EDITING_ALLOWED = args.allow_editing
+
+def check_editing_allowed():
+    if not EDITING_ALLOWED:
+        abort(403, description="Editing is disabled on this server.")
 
 def load_enumbers():
     with open(EN_FILE, encoding='utf-8') as f:
@@ -132,6 +143,7 @@ def get_enumbers():
 
 @app.route('/api/enumbers', methods=['POST'])
 def create_enumber():
+    check_editing_allowed()
     global enumbers
     data = request.get_json()
     if not data or 'code' not in data or 'name' not in data:
@@ -144,6 +156,7 @@ def create_enumber():
 
 @app.route('/api/enumbers/<code>', methods=['PUT'])
 def update_enumber(code):
+    check_editing_allowed()
     global enumbers
     data = request.get_json()
     if not data or 'name' not in data:
@@ -157,6 +170,7 @@ def update_enumber(code):
 
 @app.route('/api/enumbers/<code>', methods=['DELETE'])
 def delete_enumber(code):
+    check_editing_allowed()
     global enumbers
     for i, e in enumerate(enumbers):
         if e['code'] == code:
