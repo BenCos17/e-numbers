@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>E‑Number Lookup</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 2rem; background:#f8f9fa; }
+  h1 { margin-bottom: 1rem; }
+  input { padding: 0.5rem; width: 100%; max-width: 400px; margin-bottom: 1rem; font-size:1rem; }
+  table { border-collapse: collapse; width: 100%; background:white; }
+  th, td { border: 1px solid #ccc; padding: 0.5rem; text-align:left; }
+  th { background:#e9ecef; }
+</style>
+</head>
+<body>
+<h1>E‑Number Lookup</h1>
+<input type="text" id="search" placeholder="Search by E‑number or name…">
+
+<table id="etable">
+  <thead>
+    <tr><th>E‑Number</th><th>Name</th></tr>
+  </thead>
+  <tbody id="tbody">
+  </tbody>
+</table>
+
+<script>
+let enumbers = [];
+function renderTable(filter="") {
+  const tb = document.getElementById('tbody');
+  tb.innerHTML = "";
+  enumbers
+    .filter(e => e.code.toLowerCase().includes(filter) || e.name.toLowerCase().includes(filter))
+    .forEach(e => {
+      const row = `<tr><td>${e.code}</td><td>${e.name}</td></tr>`;
+      tb.insertAdjacentHTML('beforeend', row);
+    });
+}
+document.getElementById('search').addEventListener('input', e=>{
+  renderTable(e.target.value.toLowerCase());
+});
+fetch('enumbers.json')
+  .then(res => res.json())
+  .then(data => {
+    enumbers = data;
+    renderTable();
+  });
+</script>
+</body>
+</html>
