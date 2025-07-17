@@ -19,7 +19,7 @@
 
 <table id="etable">
   <thead>
-    <tr><th>E‑Number</th><th>Name</th></tr>
+    <tr><th>E‑Number</th><th>Name</th><th>Open Food Facts</th><th>Wikidata</th></tr>
   </thead>
   <tbody id="tbody">
   </tbody>
@@ -33,7 +33,17 @@ function renderTable(filter="") {
   enumbers
     .filter(e => e.code.toLowerCase().includes(filter) || e.name.toLowerCase().includes(filter))
     .forEach(e => {
-      const row = `<tr><td>${e.code}</td><td>${e.name}</td></tr>`;
+      let offLink = "";
+      let wikiLink = "";
+      if (e.openfoodfacts_additive) {
+        if (e.openfoodfacts_additive.url) {
+          offLink = `<a href="${e.openfoodfacts_additive.url}" target="_blank">${e.openfoodfacts_additive.name || 'Open Food Facts'}</a>`;
+        }
+        if (e.openfoodfacts_additive.sameAs && e.openfoodfacts_additive.sameAs.length > 0) {
+          wikiLink = `<a href="${e.openfoodfacts_additive.sameAs[0]}" target="_blank">Wikidata</a>`;
+        }
+      }
+      const row = `<tr><td>${e.code}</td><td>${e.name}</td><td>${offLink}</td><td>${wikiLink}</td></tr>`;
       tb.insertAdjacentHTML('beforeend', row);
     });
 }
