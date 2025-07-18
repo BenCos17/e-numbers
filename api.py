@@ -87,7 +87,12 @@ def update_enumbers_from_off_additives_logic():
                 code = match.group(1)
                 additive_dict[code] = add
 
+    # Build a set of all local codes for quick lookup
+    local_codes = set(normalize_code(entry.get('code', '')) for entry in enumbers)
     updated = 0
+    code_to_entry = {normalize_code(entry.get('code', '')): entry for entry in enumbers}
+
+    # 1. Update existing entries and mark as removed if not present in Open Food Facts
     for entry in enumbers:
         entry_code = normalize_code(entry.get('code', ''))
         if entry_code in additive_dict:
@@ -99,12 +104,33 @@ def update_enumbers_from_off_additives_logic():
                 'sameAs': add.get('sameAs', [])
             }
             entry['openfoodfacts_additive'] = off_add
+            # Remove 'removed' flag if present
+            if 'removed' in entry:
+                entry.pop('removed')
             updated += 1
         else:
+            # Mark as removed, but do not delete
+            entry['removed'] = True
             entry.pop('openfoodfacts_additive', None)
+
+    # 2. Add new E numbers from Open Food Facts if not present locally
+    for code, add in additive_dict.items():
+        if code not in code_to_entry:
+            new_entry = {
+                'code': code,
+                'name': add.get('name', code),
+                'openfoodfacts_additive': {
+                    'name': add.get('name'),
+                    'url': add.get('url'),
+                    'sameAs': add.get('sameAs', [])
+                }
+            }
+            enumbers.append(new_entry)
+            updated += 1
+
     save_enumbers(enumbers)
     enumbers = load_enumbers()
-    print(f'Updated {updated} entries with Open Food Facts additive data.')
+    print(f'Updated {updated} entries with Open Food Facts additive data (including new and removed).')
     return updated
 
 # Endpoint to update enumbers.json with Open Food Facts data
@@ -125,6 +151,9 @@ def update_openfoodfacts():
 # Flask route for manual update
 @app.route('/api/update_enumbers_from_off_additives', methods=['POST'])
 def update_enumbers_from_off_additives():
+    denied = check_editing_allowed()
+    if denied:
+        return denied
     global enumbers
     updated = update_enumbers_from_off_additives_logic()
     if updated == 0:
