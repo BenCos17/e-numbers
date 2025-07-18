@@ -33,16 +33,21 @@ function renderTable(filter="") {
   enumbers
     .filter(e => e.code.toLowerCase().includes(filter) || e.name.toLowerCase().includes(filter))
     .forEach(e => {
-      let offLink = "<span style='color:#bbb'>(none)</span>";
-      let wikiLink = "<span style='color:#bbb'>(none)</span>";
-      if (e.openfoodfacts_additive) {
-        if (e.openfoodfacts_additive.url) {
-          offLink = `<a href="${e.openfoodfacts_additive.url}" target="_blank">${e.openfoodfacts_additive.name || 'Open Food Facts'}</a>`;
-        }
-        if (e.openfoodfacts_additive.sameAs && e.openfoodfacts_additive.sameAs.length > 0) {
-          wikiLink = `<a href="${e.openfoodfacts_additive.sameAs[0]}" target="_blank">Wikidata</a>`;
-        }
+      let offLink;
+      if (e.openfoodfacts_additive && e.openfoodfacts_additive.url) {
+        offLink = `<a href="${e.openfoodfacts_additive.url}" target="_blank">${e.openfoodfacts_additive.name || 'Open Food Facts'}</a>`;
+      } else if (e.openfoodfacts_url) {
+        offLink = `<a href="${e.openfoodfacts_url}" target="_blank">Open Food Facts (generic)</a>`;
+      } else {
+        offLink = "<span style='color:#bbb'>(none)</span>";
       }
+      console.log(e.code, e.openfoodfacts_url, offLink);
+
+      let wikiLink = "<span style='color:#bbb'>(none)</span>";
+      if (e.openfoodfacts_additive && e.openfoodfacts_additive.sameAs && e.openfoodfacts_additive.sameAs.length > 0) {
+        wikiLink = `<a href="${e.openfoodfacts_additive.sameAs[0]}" target="_blank">Wikidata</a>`;
+      }
+
       const row = `<tr><td>${e.code}</td><td>${e.name}</td><td>${offLink}</td><td>${wikiLink}</td></tr>`;
       tb.insertAdjacentHTML('beforeend', row);
     });
@@ -51,7 +56,7 @@ document.getElementById('search').addEventListener('input', e=>{
   renderTable(e.target.value.toLowerCase());
 });
 // Change fetch to use the API endpoint
-fetch('http://localhost:5000/api/enumbers')
+fetch('/api/enumbers')
   .then(res => res.json())
   .then(data => {
     enumbers = data;
