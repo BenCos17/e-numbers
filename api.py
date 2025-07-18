@@ -5,6 +5,7 @@ import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 import argparse
 from flask_cors import CORS
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -51,7 +52,7 @@ def fetch_openfoodfacts_product(barcode):
 # Helper function to fetch all additives (E numbers) from Open Food Facts
 
 def fetch_all_additives():
-    url = "https://world.openfoodfacts.org/additives.json"
+    url = "https://world.openfoodfacts.org/facets/additives.json"
     headers = {"User-Agent": USER_AGENT}
     try:
         response = requests.get(url, headers=headers, timeout=20)
@@ -72,16 +73,19 @@ def update_enumbers_from_off_additives_logic():
         return 0
 
     def normalize_code(code):
-        return code.replace(' ', '').replace('-', '').replace('\u2013', '').upper()
+        # Extract E-number using regex, remove spaces/dashes, uppercase
+        match = re.match(r'(E\d+)', code.replace(' ', '').replace('-', '').upper())
+        return match.group(1) if match else code.replace(' ', '').replace('-', '').upper()
 
     # Build a dict for quick lookup by normalized E number code (e.g., E330, E322, etc.)
     additive_dict = {}
     for add in additives:
-        # Extract E number from name, e.g., "E330 - Citric acid" -> "E330"
         if 'name' in add and add['name'].startswith('E'):
-            code = add['name'].split(' ')[0]
-            norm_code = normalize_code(code)
-            additive_dict[norm_code] = add
+            # Extract E-number using regex from the additive name
+            match = re.match(r'(E\d+)', add['name'].replace(' ', '').replace('-', '').upper())
+            if match:
+                code = match.group(1)
+                additive_dict[code] = add
 
     updated = 0
     for entry in enumbers:

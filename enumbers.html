@@ -33,8 +33,8 @@ function renderTable(filter="") {
   enumbers
     .filter(e => e.code.toLowerCase().includes(filter) || e.name.toLowerCase().includes(filter))
     .forEach(e => {
-      let offLink = "";
-      let wikiLink = "";
+      let offLink = "<span style='color:#bbb'>(none)</span>";
+      let wikiLink = "<span style='color:#bbb'>(none)</span>";
       if (e.openfoodfacts_additive) {
         if (e.openfoodfacts_additive.url) {
           offLink = `<a href="${e.openfoodfacts_additive.url}" target="_blank">${e.openfoodfacts_additive.name || 'Open Food Facts'}</a>`;
