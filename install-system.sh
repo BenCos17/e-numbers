@@ -39,7 +39,7 @@ echo "  • Create system user and group"
 echo "  • Install application to $APP_DIR"
 echo "  • Create systemd service"
 echo "  • Set up log rotation"
-echo "  • Configure nginx reverse proxy (optional)"
+echo "  • Configure Apache2 reverse proxy (optional)"
 echo "  • Set up SSL with Let's Encrypt (optional)"
 echo
 
@@ -62,18 +62,25 @@ read -p "Enter domain name for the application (e.g., enumbers.example.com): " D
 read -p "Enter port for the application [5000]: " APP_PORT
 APP_PORT=${APP_PORT:-5000}
 
-read -p "Do you want to install nginx reverse proxy? [y/N]: " INSTALL_NGINX
+read -p "Do you want to install Apache2 reverse proxy? [y/N]: " INSTALL_NGINX
 read -p "Do you want to enable editing capabilities? [y/N]: " ENABLE_EDITING
 
 if [[ $INSTALL_NGINX =~ ^[Yy]$ ]]; then
     read -p "Do you want to set up SSL with Let's Encrypt? [y/N]: " SETUP_SSL
+    if [[ $SETUP_SSL =~ ^[Yy]$ ]]; then
+        read -p "Enter email address for Let's Encrypt notifications: " CERTBOT_EMAIL
+        if [[ -z "$CERTBOT_EMAIL" ]]; then
+            print_error "Email address is required for Let's Encrypt"
+            exit 1
+        fi
+    fi
 fi
 
 echo
 print_info "Installing with the following configuration:"
 echo "  • Domain: ${DOMAIN_NAME:-localhost}"
 echo "  • Port: $APP_PORT"
-echo "  • Nginx: ${INSTALL_NGINX:-No}"
+echo "  • Apache2: ${INSTALL_NGINX:-No}"
 echo "  • SSL: ${SETUP_SSL:-No}"
 echo "  • Editing: ${ENABLE_EDITING:-No}"
 echo
@@ -91,9 +98,9 @@ print_success "System packages updated"
 
 # Install required system packages
 print_info "Installing required system packages..."
-PACKAGES="python3 python3-pip python3-venv nginx logrotate"
+PACKAGES="python3 python3-pip python3-venv apache2 logrotate"
 if [[ $SETUP_SSL =~ ^[Yy]$ ]]; then
-    PACKAGES="$PACKAGES certbot python3-certbot-nginx"
+    PACKAGES="$PACKAGES certbot python3-certbot-apache"
 fi
 apt install -y $PACKAGES
 print_success "System packages installed"
@@ -209,56 +216,51 @@ $LOG_DIR/*.log {
 EOF
 print_success "Log rotation configured"
 
-# Set up nginx if requested
+# Set up Apache2 if requested
 if [[ $INSTALL_NGINX =~ ^[Yy]$ ]]; then
-    print_info "Configuring nginx reverse proxy..."
+    print_info "Configuring Apache2 reverse proxy..."
     
-    cat > $NGINX_AVAILABLE/enumbers << EOF
-server {
-    listen 80;
-    server_name ${DOMAIN_NAME:-localhost};
+    # Enable required Apache modules
+    a2enmod proxy
+    a2enmod proxy_http
+    a2enmod headers
+    a2enmod rewrite
+    
+    cat > /etc/apache2/sites-available/enumbers.conf << EOF
+<VirtualHost *:80>
+    ServerName ${DOMAIN_NAME:-localhost}
+    ServerAdmin webmaster@${DOMAIN_NAME:-localhost}
     
     # Security headers
-    add_header X-Frame-Options DENY;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    add_header Referrer-Policy strict-origin-when-cross-origin;
+    Header always set X-Frame-Options DENY
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
     
     # Logs
-    access_log /var/log/nginx/enumbers_access.log;
-    error_log /var/log/nginx/enumbers_error.log;
+    ErrorLog \${APACHE_LOG_DIR}/enumbers_error.log
+    CustomLog \${APACHE_LOG_DIR}/enumbers_access.log combined
     
-    # Rate limiting
-    location / {
-        limit_req zone=general burst=10 nodelay;
-        proxy_pass http://127.0.0.1:$APP_PORT;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
+    # Proxy to Flask application
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:$APP_PORT/
+    ProxyPassReverse / http://127.0.0.1:$APP_PORT/
     
     # Static files caching
-    location ~* \.(css|js|png|jpg|jpeg|gif|ico|svg)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
+    <LocationMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </LocationMatch>
+</VirtualHost>
 EOF
 
-    # Create rate limiting zone in nginx.conf if not exists
-    if ! grep -q "limit_req_zone" /etc/nginx/nginx.conf; then
-        sed -i '/http {/a\\tlimit_req_zone $binary_remote_addr zone=general:10m rate=10r/s;' /etc/nginx/nginx.conf
-    fi
-    
     # Enable the site
-    ln -sf $NGINX_AVAILABLE/enumbers $NGINX_ENABLED/
+    a2ensite enumbers.conf
     
-    # Test nginx configuration
-    if nginx -t; then
-        print_success "Nginx configuration is valid"
+    # Test Apache configuration
+    if apache2ctl configtest; then
+        print_success "Apache2 configuration is valid"
     else
-        print_error "Nginx configuration has errors"
+        print_error "Apache2 configuration has errors"
         exit 1
     fi
 fi
@@ -270,8 +272,8 @@ systemctl enable enumbers.service
 systemctl start enumbers.service
 
 if [[ $INSTALL_NGINX =~ ^[Yy]$ ]]; then
-    systemctl enable nginx
-    systemctl restart nginx
+    systemctl enable apache2
+    systemctl restart apache2
 fi
 
 # Wait for service to start
@@ -289,7 +291,7 @@ fi
 # Set up SSL if requested
 if [[ $SETUP_SSL =~ ^[Yy]$ && $INSTALL_NGINX =~ ^[Yy]$ ]]; then
     print_info "Setting up SSL certificate..."
-    certbot --nginx -d $DOMAIN_NAME --non-interactive --agree-tos --email admin@$DOMAIN_NAME
+    certbot --apache -d $DOMAIN_NAME --non-interactive --agree-tos --email admin@$DOMAIN_NAME
     if [[ $? -eq 0 ]]; then
         print_success "SSL certificate installed"
     else
@@ -347,8 +349,8 @@ echo "Uninstalling E-Numbers Application..."
 systemctl stop enumbers.service
 systemctl disable enumbers.service
 rm -f $SYSTEMD_DIR/enumbers.service
-rm -f $NGINX_ENABLED/enumbers
-rm -f $NGINX_AVAILABLE/enumbers
+a2dissite enumbers.conf
+rm -f /etc/apache2/sites-available/enumbers.conf
 rm -rf $APP_DIR $LOG_DIR $CONFIG_DIR
 userdel $APP_USER
 groupdel $APP_GROUP
@@ -356,7 +358,7 @@ rm -f /etc/logrotate.d/enumbers
 rm -f /usr/local/bin/enumbers-*
 crontab -l | grep -v enumbers-backup | crontab -
 systemctl daemon-reload
-systemctl reload nginx
+systemctl reload apache2
 echo "E-Numbers Application uninstalled"
 EOF
 chmod +x /usr/local/bin/enumbers-uninstall
