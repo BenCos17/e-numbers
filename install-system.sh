@@ -82,6 +82,9 @@ echo "  • Domain: ${DOMAIN_NAME:-localhost}"
 echo "  • Port: $APP_PORT"
 echo "  • Apache2: ${INSTALL_NGINX:-No}"
 echo "  • SSL: ${SETUP_SSL:-No}"
+if [[ $SETUP_SSL =~ ^[Yy]$ ]]; then
+    echo "  • SSL Email: $CERTBOT_EMAIL"
+fi
 echo "  • Editing: ${ENABLE_EDITING:-No}"
 echo
 
@@ -291,7 +294,7 @@ fi
 # Set up SSL if requested
 if [[ $SETUP_SSL =~ ^[Yy]$ && $INSTALL_NGINX =~ ^[Yy]$ ]]; then
     print_info "Setting up SSL certificate..."
-    certbot --apache -d $DOMAIN_NAME --non-interactive --agree-tos --email admin@$DOMAIN_NAME
+    certbot --apache -d $DOMAIN_NAME --non-interactive --agree-tos --email $CERTBOT_EMAIL
     if [[ $? -eq 0 ]]; then
         print_success "SSL certificate installed"
     else
