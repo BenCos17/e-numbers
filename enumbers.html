@@ -11,11 +11,16 @@
   table { border-collapse: collapse; width: 100%; background:white; }
   th, td { border: 1px solid #ccc; padding: 0.5rem; text-align:left; }
   th { background:#e9ecef; }
+  .error { color: #dc3545; padding: 1rem; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 0.25rem; margin-bottom: 1rem; }
+  .loading { color: #6c757d; padding: 1rem; text-align: center; }
 </style>
 </head>
 <body>
 <h1>E‑Number Lookup</h1>
-<input type="text" id="search" placeholder="Search by E‑number or name…">
+<input type="text" id="search" placeholder="Search by E‑number or name…" maxlength="100">
+
+<div id="error-container"></div>
+<div id="loading" class="loading" style="display:none;">Loading...</div>
 
 <table id="etable">
   <thead>
@@ -27,40 +32,187 @@
 
 <script>
 let enumbers = [];
-function renderTable(filter="") {
-  const tb = document.getElementById('tbody');
-  tb.innerHTML = "";
-  enumbers
-    .filter(e => e.code.toLowerCase().includes(filter) || e.name.toLowerCase().includes(filter))
-    .forEach(e => {
-      let offLink;
-      if (e.openfoodfacts_additive && e.openfoodfacts_additive.url) {
-        offLink = `<a href="${e.openfoodfacts_additive.url}" target="_blank">${e.openfoodfacts_additive.name || 'Open Food Facts'}</a>`;
-      } else if (e.openfoodfacts_url) {
-        offLink = `<a href="${e.openfoodfacts_url}" target="_blank">Open Food Facts (generic)</a>`;
-      } else {
-        offLink = "<span style='color:#bbb'>(none)</span>";
-      }
-      console.log(e.code, e.openfoodfacts_url, offLink);
+let searchTimeout;
 
-      let wikiLink = "<span style='color:#bbb'>(none)</span>";
-      if (e.openfoodfacts_additive && e.openfoodfacts_additive.sameAs && e.openfoodfacts_additive.sameAs.length > 0) {
-        wikiLink = `<a href="${e.openfoodfacts_additive.sameAs[0]}" target="_blank">Wikidata</a>`;
-      }
-
-      const row = `<tr><td>${e.code}</td><td>${e.name}</td><td>${offLink}</td><td>${wikiLink}</td></tr>`;
-      tb.insertAdjacentHTML('beforeend', row);
-    });
+// Security: HTML escaping function
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
-document.getElementById('search').addEventListener('input', e=>{
-  renderTable(e.target.value.toLowerCase());
+
+// Security: URL validation function
+function isValidUrl(string) {
+  try {
+    const url = new URL(string);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch (_) {
+    return false;
+  }
+}
+
+// Security: Create DOM elements safely instead of using innerHTML
+function createTableRow(entry) {
+  const row = document.createElement('tr');
+  
+  // E-Number cell
+  const codeCell = document.createElement('td');
+  codeCell.textContent = entry.code;
+  row.appendChild(codeCell);
+  
+  // Name cell
+  const nameCell = document.createElement('td');
+  nameCell.textContent = entry.name;
+  row.appendChild(nameCell);
+  
+  // Open Food Facts cell
+  const offCell = document.createElement('td');
+  if (entry.openfoodfacts_additive && entry.openfoodfacts_additive.url && isValidUrl(entry.openfoodfacts_additive.url)) {
+    const offLink = document.createElement('a');
+    offLink.href = entry.openfoodfacts_additive.url;
+    offLink.textContent = entry.openfoodfacts_additive.name || 'Open Food Facts';
+    offLink.target = '_blank';
+    offLink.rel = 'noopener noreferrer'; // Security: prevent window.opener access
+    offCell.appendChild(offLink);
+  } else if (entry.openfoodfacts_url && isValidUrl(entry.openfoodfacts_url)) {
+    const offLink = document.createElement('a');
+    offLink.href = entry.openfoodfacts_url;
+    offLink.textContent = 'Open Food Facts (generic)';
+    offLink.target = '_blank';
+    offLink.rel = 'noopener noreferrer';
+    offCell.appendChild(offLink);
+  } else {
+    const span = document.createElement('span');
+    span.style.color = '#bbb';
+    span.textContent = '(none)';
+    offCell.appendChild(span);
+  }
+  row.appendChild(offCell);
+  
+  // Wikidata cell
+  const wikiCell = document.createElement('td');
+  if (entry.openfoodfacts_additive && 
+      entry.openfoodfacts_additive.sameAs && 
+      entry.openfoodfacts_additive.sameAs.length > 0 &&
+      isValidUrl(entry.openfoodfacts_additive.sameAs[0])) {
+    const wikiLink = document.createElement('a');
+    wikiLink.href = entry.openfoodfacts_additive.sameAs[0];
+    wikiLink.textContent = 'Wikidata';
+    wikiLink.target = '_blank';
+    wikiLink.rel = 'noopener noreferrer';
+    wikiCell.appendChild(wikiLink);
+  } else {
+    const span = document.createElement('span');
+    span.style.color = '#bbb';
+    span.textContent = '(none)';
+    wikiCell.appendChild(span);
+  }
+  row.appendChild(wikiCell);
+  
+  return row;
+}
+
+function showError(message) {
+  const errorContainer = document.getElementById('error-container');
+  errorContainer.innerHTML = '';
+  
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'error';
+  errorDiv.textContent = message;
+  errorContainer.appendChild(errorDiv);
+}
+
+function hideError() {
+  document.getElementById('error-container').innerHTML = '';
+}
+
+function showLoading() {
+  document.getElementById('loading').style.display = 'block';
+}
+
+function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+}
+
+function renderTable(filter="") {
+  const tbody = document.getElementById('tbody');
+  
+  // Clear existing rows
+  while (tbody.firstChild) {
+    tbody.removeChild(tbody.firstChild);
+  }
+  
+  // Security: Escape filter input
+  const safeFilter = filter.toLowerCase().trim();
+  
+  // Filter and render entries
+  const filteredEntries = enumbers.filter(e => 
+    e.code.toLowerCase().includes(safeFilter) || 
+    e.name.toLowerCase().includes(safeFilter)
+  );
+  
+  // Limit results for performance
+  const limitedEntries = filteredEntries.slice(0, 500);
+  
+  // Create and append rows
+  const fragment = document.createDocumentFragment();
+  limitedEntries.forEach(entry => {
+    fragment.appendChild(createTableRow(entry));
+  });
+  tbody.appendChild(fragment);
+}
+
+// Security: Debounced search to prevent excessive API calls
+document.getElementById('search').addEventListener('input', function(e) {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    const query = e.target.value;
+    // Security: Limit input length
+    if (query.length > 100) {
+      e.target.value = query.substring(0, 100);
+      return;
+    }
+    renderTable(query);
+  }, 300); // 300ms debounce
 });
-// Change fetch to use the API endpoint
-fetch('/api/enumbers')
-  .then(res => res.json())
+
+// Security: Fetch with error handling and timeout
+function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  
+  return fetch(url, {
+    ...options,
+    signal: controller.signal
+  }).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
+
+// Load data from API
+showLoading();
+fetchWithTimeout('/api/enumbers')
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
   .then(data => {
-    enumbers = data;
-    renderTable();
+    if (Array.isArray(data)) {
+      enumbers = data;
+      renderTable();
+      hideError();
+    } else {
+      throw new Error('Invalid data format received');
+    }
+  })
+  .catch(error => {
+    console.error('Error loading E-numbers:', error);
+    showError('Failed to load E-number data. Please try refreshing the page.');
+  })
+  .finally(() => {
+    hideLoading();
   });
 </script>
 </body>

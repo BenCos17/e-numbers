@@ -1,4 +1,6 @@
 Flask
 requests
 APScheduler 
-flask-cors 
+flask-cors
+bleach
+Werkzeug 
