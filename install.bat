@@ -27,13 +27,14 @@ if %errorlevel% neq 0 (
 )
 
 echo Downloading application files...
-powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/requirements.txt' -OutFile 'requirements.txt'"
-powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/api.py' -OutFile 'api.py'"
-powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/enumbers.html' -OutFile 'enumbers.html'"
-powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/enumbers.json' -OutFile 'enumbers.json'"
+curl -fsSL "https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/requirements.txt" -o requirements.txt
+curl -fsSL "https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/api.py" -o api.py
+curl -fsSL "https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/enumbers.html" -o enumbers.html
+curl -fsSL "https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/enumbers.json" -o enumbers.json
 
 if not exist requirements.txt (
     echo ERROR: Failed to download requirements.txt
+    echo Please check your internet connection
     pause
     exit /b 1
 )
