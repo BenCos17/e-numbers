@@ -5,14 +5,134 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>E‑Number Lookup</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 2rem; background:#f8f9fa; }
+  :root {
+    --bg-color: #f8f9fa;
+    --text-color: #333;
+    --table-bg: white;
+    --table-border: #ccc;
+    --header-bg: #e9ecef;
+    --input-bg: white;
+    --input-border: #ccc;
+    --error-bg: #f8d7da;
+    --error-border: #f5c6cb;
+    --error-text: #dc3545;
+    --loading-color: #6c757d;
+    --placeholder-color: #bbb;
+  }
+
+  [data-theme="dark"] {
+    --bg-color: #1a1a1a;
+    --text-color: #e0e0e0;
+    --table-bg: #2d2d2d;
+    --table-border: #444;
+    --header-bg: #3d3d3d;
+    --input-bg: #2d2d2d;
+    --input-border: #444;
+    --error-bg: #3d1f1f;
+    --error-border: #5c2a2a;
+    --error-text: #ff6b6b;
+    --loading-color: #a0a0a0;
+    --placeholder-color: #666;
+  }
+
+  body { 
+    font-family: Arial, sans-serif; 
+    margin: 2rem; 
+    background: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
   h1 { margin-bottom: 1rem; }
-  input { padding: 0.5rem; width: 100%; max-width: 400px; margin-bottom: 1rem; font-size:1rem; }
-  table { border-collapse: collapse; width: 100%; background:white; }
-  th, td { border: 1px solid #ccc; padding: 0.5rem; text-align:left; }
-  th { background:#e9ecef; }
-  .error { color: #dc3545; padding: 1rem; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 0.25rem; margin-bottom: 1rem; }
-  .loading { color: #6c757d; padding: 1rem; text-align: center; }
+  
+  input { 
+    padding: 0.5rem; 
+    width: 100%; 
+    max-width: 400px; 
+    margin-bottom: 1rem; 
+    font-size: 1rem;
+    background: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+  
+  input::placeholder {
+    color: var(--placeholder-color);
+  }
+  
+  select {
+    background: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+  
+  table { 
+    border-collapse: collapse; 
+    width: 100%; 
+    background: var(--table-bg);
+    transition: background-color 0.3s ease;
+  }
+  
+  th, td { 
+    border: 1px solid var(--table-border); 
+    padding: 0.5rem; 
+    text-align: left;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+  
+  th { 
+    background: var(--header-bg);
+    transition: background-color 0.3s ease;
+  }
+  
+  .error { 
+    color: var(--error-text); 
+    padding: 1rem; 
+    background: var(--error-bg); 
+    border: 1px solid var(--error-border); 
+    border-radius: 0.25rem; 
+    margin-bottom: 1rem;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
+  
+  .loading { 
+    color: var(--loading-color); 
+    padding: 1rem; 
+    text-align: center;
+    transition: color 0.3s ease;
+  }
+
+  .theme-toggle {
+    background: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .theme-toggle:hover {
+    background: var(--header-bg);
+  }
+
+  a {
+    color: #007bff;
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  [data-theme="dark"] a {
+    color: #4da6ff;
+  }
 </style>
 </head>
 <body>
@@ -23,6 +143,7 @@
     <option value="code">Sort by E-Number</option>
     <option value="name">Sort by Name</option>
   </select>
+  <button id="theme-toggle" class="theme-toggle">🌙 Dark Mode</button>
 </div>
 
 <div id="error-container"></div>
@@ -201,6 +322,38 @@ document.getElementById('sort').addEventListener('change', function(e) {
   currentSort = e.target.value;
   renderTable(document.getElementById('search').value);
 });
+
+// Theme toggle functionality
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  
+  // Update button text
+  const button = document.getElementById('theme-toggle');
+  button.textContent = newTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+}
+
+// Load theme from localStorage on page load
+function loadTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    const button = document.getElementById('theme-toggle');
+    button.textContent = savedTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+  }
+}
+
+// Theme toggle handler
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+// Load theme when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadTheme);
+} else {
+  loadTheme();
+}
 
 // Security: Fetch with error handling and timeout
 function fetchWithTimeout(url, options = {}) {
