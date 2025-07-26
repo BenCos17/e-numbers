@@ -134,6 +134,12 @@ print_info "Installing application files..."
 cp -r . $APP_DIR/
 chown -R $APP_USER:$APP_GROUP $APP_DIR
 chmod +x $APP_DIR/*.py
+
+# Fix Flask to listen on all interfaces for Apache2 proxy
+print_info "Configuring Flask to listen on all interfaces..."
+sed -i "s/app.run(debug=True)/app.run(debug=True, host='0.0.0.0', port=$APP_PORT)/" $APP_DIR/api.py
+print_success "Flask configured to listen on all interfaces"
+
 print_success "Application files installed"
 
 # Create virtual environment
@@ -300,6 +306,13 @@ sleep 3
 # Check service status
 if systemctl is-active --quiet enumbers.service; then
     print_success "E-Numbers service is running"
+    
+    # Verify Flask is listening on the correct interface
+    if netstat -tlnp | grep -q ":$APP_PORT.*LISTEN"; then
+        print_success "Flask application is listening on port $APP_PORT"
+    else
+        print_warning "Flask application may not be listening properly"
+    fi
 else
     print_error "E-Numbers service failed to start"
     print_info "Check logs with: journalctl -u enumbers.service"
@@ -309,11 +322,22 @@ fi
 # Set up SSL if requested
 if [[ $SETUP_SSL =~ ^[Yy]$ && $INSTALL_NGINX =~ ^[Yy]$ ]]; then
     print_info "Setting up SSL certificate..."
-    certbot --apache -d $DOMAIN_NAME --non-interactive --agree-tos --email $CERTBOT_EMAIL
+    
+    # Ensure Apache2 is running before certbot
+    systemctl restart apache2
+    
+    # Run certbot with proper flags
+    certbot --apache -d $DOMAIN_NAME --non-interactive --agree-tos --email $CERTBOT_EMAIL --redirect
     if [[ $? -eq 0 ]]; then
         print_success "SSL certificate installed"
+        
+        # Verify the SSL configuration
+        print_info "Verifying SSL configuration..."
+        apache2ctl configtest
+        systemctl reload apache2
     else
         print_warning "SSL certificate installation failed"
+        print_info "You can manually run: certbot --apache -d $DOMAIN_NAME"
     fi
 fi
 
@@ -404,11 +428,31 @@ print_info "Access URLs:"
 if [[ $INSTALL_NGINX =~ ^[Yy]$ ]]; then
     if [[ $SETUP_SSL =~ ^[Yy]$ ]]; then
         echo "  • https://${DOMAIN_NAME}/enumbers.html"
+        echo "  • https://${DOMAIN_NAME}/ (redirects to enumbers.html)"
     else
         echo "  • http://${DOMAIN_NAME}/enumbers.html"
+        echo "  • http://${DOMAIN_NAME}/ (redirects to enumbers.html)"
     fi
 else
     echo "  • http://localhost:$APP_PORT/enumbers.html"
+    echo "  • http://localhost:$APP_PORT/ (redirects to enumbers.html)"
 fi
 echo
-print_success "E-Numbers Application is now running as a system service!" 
+print_success "E-Numbers Application is now running as a system service!"
+
+echo
+print_info "Troubleshooting Commands:"
+echo "  • Check service status: systemctl status enumbers.service"
+echo "  • View recent logs: journalctl -u enumbers.service -n 20"
+echo "  • Check if Flask is listening: netstat -tlnp | grep :$APP_PORT"
+echo "  • Test API directly: curl http://127.0.0.1:$APP_PORT/api/enumbers"
+echo "  • Check Apache2 status: systemctl status apache2"
+echo "  • Test Apache2 config: apache2ctl configtest"
+echo "  • View Apache2 logs: tail -f /var/log/apache2/error.log"
+echo
+print_info "If you encounter issues:"
+echo "  1. Check the service logs: journalctl -u enumbers.service -f"
+echo "  2. Verify Flask is listening on 0.0.0.0:$APP_PORT"
+echo "  3. Test the API endpoint directly"
+echo "  4. Check Apache2 proxy configuration"
+echo "  5. Ensure SSL certificate is valid (if using HTTPS)" 
