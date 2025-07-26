@@ -151,6 +151,10 @@
     flex-wrap: wrap;
   }
   
+  .category-filter {
+    min-width: 200px;
+  }
+  
   select {
     padding: 1rem 1.5rem;
     font-size: 1rem;
@@ -282,6 +286,14 @@
     font-weight: 500;
   }
   
+  .category {
+    font-size: 0.85rem;
+    color: var(--text-color);
+    font-weight: 500;
+  }
+  
+
+  
   a {
     color: var(--link-color);
     text-decoration: none;
@@ -342,6 +354,10 @@
       flex: 1;
       min-width: 0;
       padding: 0.75rem 1rem;
+    }
+    
+    .category-filter {
+      min-width: 0;
     }
     
     .table-container {
@@ -416,6 +432,20 @@
       <button id="clear-search" class="clear-search" title="Clear search">×</button>
     </div>
     <div class="controls-group">
+      <select id="category-filter" class="category-filter">
+        <option value="">All Categories</option>
+        <option value="Colors">Colors</option>
+        <option value="Preservatives">Preservatives</option>
+        <option value="Antioxidants & Acidity Regulators">Antioxidants & Acidity Regulators</option>
+        <option value="Thickeners, Stabilizers & Emulsifiers">Thickeners, Stabilizers & Emulsifiers</option>
+        <option value="Acidity Regulators & Anti-caking Agents">Acidity Regulators & Anti-caking Agents</option>
+        <option value="Flavor Enhancers">Flavor Enhancers</option>
+        <option value="Antibiotics">Antibiotics</option>
+        <option value="Glazing Agents, Sweeteners & Others">Glazing Agents, Sweeteners & Others</option>
+        <option value="Additional Chemicals">Additional Chemicals</option>
+        <option value="Modified Starches">Modified Starches</option>
+        <option value="Other">Other</option>
+      </select>
       <select id="sort">
         <option value="code">Sort by E-Number</option>
         <option value="name">Sort by Name</option>
@@ -427,11 +457,13 @@
   <div id="results-info" class="results-info"></div>
   <div id="error-container"></div>
   <div id="loading" class="loading" style="display:none;">Loading...</div>
+  
+
 
   <div class="table-container">
     <table id="etable">
       <thead>
-        <tr><th>E‑Number</th><th>Name</th><th>Open Food Facts</th><th>Wikidata</th><th>Research</th></tr>
+        <tr><th>E‑Number</th><th>Name</th><th>Category</th><th>Open Food Facts</th><th>Wikidata</th><th>Research</th></tr>
       </thead>
       <tbody id="tbody">
       </tbody>
@@ -443,6 +475,32 @@
 let enumbers = [];
 let searchTimeout;
 let currentSort = 'code';
+
+// E-number category mapping
+function getCategory(code) {
+  if (!code) return '-';
+  
+  // Handle special cases first
+  if (code.toUpperCase().includes('E14XX')) return 'Modified Starches';
+  if (code.toUpperCase().includes('E15XX')) return 'Additional Chemicals';
+  if (code === 'E14') return 'Modified Starches'; // Special case for E14
+  
+  const num = parseInt(code.replace(/[^0-9]/g, ''));
+  
+  if (num >= 100 && num <= 199) return 'Colors';
+  if (num >= 200 && num <= 299) return 'Preservatives';
+  if (num >= 300 && num <= 399) return 'Antioxidants & Acidity Regulators';
+  if (num >= 400 && num <= 499) return 'Thickeners, Stabilizers & Emulsifiers';
+  if (num >= 500 && num <= 599) return 'Acidity Regulators & Anti-caking Agents';
+  if (num >= 600 && num <= 699) return 'Flavor Enhancers';
+  if (num >= 700 && num <= 799) return 'Antibiotics';
+  if (num >= 900 && num <= 999) return 'Glazing Agents, Sweeteners & Others';
+  if (num >= 1000 && num <= 1999) return 'Additional Chemicals';
+  if (num >= 1400 && num <= 1499) return 'Modified Starches';
+  if (num >= 1500 && num <= 1599) return 'Additional Chemicals';
+  
+  return 'Other';
+}
 
 // Security: HTML escaping function
 function escapeHtml(text) {
@@ -476,6 +534,15 @@ function createTableRow(entry) {
   nameCell.className = 'name';
   nameCell.textContent = entry.name;
   row.appendChild(nameCell);
+  
+  // Category cell
+  const categoryCell = document.createElement('td');
+  const category = getCategory(entry.code);
+  categoryCell.className = 'category';
+  categoryCell.textContent = category;
+  row.appendChild(categoryCell);
+
+
   
   // Open Food Facts cell
   const offCell = document.createElement('td');
@@ -523,13 +590,35 @@ function createTableRow(entry) {
   
   // Research cell (PubMed)
   const researchCell = document.createElement('td');
-  const researchLink = document.createElement('a');
-  researchLink.href = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(entry.code + ' ' + entry.name + ' food additive')}`;
-  researchLink.textContent = 'PubMed Search';
-  researchLink.target = '_blank';
-  researchLink.rel = 'noopener noreferrer';
-  researchLink.title = 'Search scientific literature';
-  researchCell.appendChild(researchLink);
+  
+  // Check if this is a valid E-number for searching
+  const isValidENumber = /^E\d{1,4}$/.test(entry.code);
+  
+  if (isValidENumber && entry.name && entry.name.trim() !== '') {
+    const researchLink = document.createElement('a');
+    // Create a more intelligent search query
+    const searchTerms = [
+      entry.code,
+      entry.name,
+      'food additive',
+      'safety',
+      'health effects'
+    ].filter(term => term && term.trim() !== '').join(' ');
+    
+    researchLink.href = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(searchTerms)}`;
+    researchLink.textContent = 'PubMed Search';
+    researchLink.target = '_blank';
+    researchLink.rel = 'noopener noreferrer';
+    researchLink.title = 'Search scientific literature';
+    researchCell.appendChild(researchLink);
+  } else {
+    const span = document.createElement('span');
+    span.className = 'no-data';
+    span.textContent = '-';
+    span.title = 'No searchable data available';
+    researchCell.appendChild(span);
+  }
+  
   row.appendChild(researchCell);
   
   return row;
@@ -569,11 +658,19 @@ function renderTable(filter="") {
   // Security: Escape filter input
   const safeFilter = filter.toLowerCase().trim();
   
+  // Get selected category
+  const selectedCategory = document.getElementById('category-filter').value;
+  
   // Filter entries
-  const filteredEntries = enumbers.filter(e => 
+  let filteredEntries = enumbers.filter(e => 
     e.code.toLowerCase().includes(safeFilter) || 
     e.name.toLowerCase().includes(safeFilter)
   );
+  
+  // Apply category filter if selected
+  if (selectedCategory) {
+    filteredEntries = filteredEntries.filter(e => getCategory(e.code) === selectedCategory);
+  }
   
   // Sort entries
   const sortedEntries = filteredEntries.sort((a, b) => {
@@ -592,10 +689,15 @@ function renderTable(filter="") {
   const limitedEntries = sortedEntries.slice(0, 500);
   
   // Show results count
-  if (safeFilter) {
+  if (safeFilter || selectedCategory) {
     const totalResults = filteredEntries.length;
     const shownResults = limitedEntries.length;
     let message = `Found ${totalResults} result${totalResults !== 1 ? 's' : ''}`;
+    
+    if (selectedCategory) {
+      message += ` in category "${selectedCategory}"`;
+    }
+    
     if (totalResults > 500) {
       message += ` (showing first 500)`;
     }
@@ -642,9 +744,15 @@ document.getElementById('sort').addEventListener('change', function(e) {
   renderTable(document.getElementById('search').value);
 });
 
+// Category filter dropdown change handler
+document.getElementById('category-filter').addEventListener('change', function(e) {
+  renderTable(document.getElementById('search').value);
+});
+
 // Clear search button handler
 document.getElementById('clear-search').addEventListener('click', function() {
   document.getElementById('search').value = '';
+  document.getElementById('category-filter').value = '';
   document.getElementById('clear-search').classList.remove('visible');
   renderTable();
 });
