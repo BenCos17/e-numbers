@@ -495,8 +495,8 @@ function createTableRow(entry) {
     offCell.appendChild(offLink);
   } else {
     const span = document.createElement('span');
-    span.style.color = '#bbb';
-    span.textContent = '(none)';
+    span.className = 'no-data';
+    span.textContent = '—';
     offCell.appendChild(span);
   }
   row.appendChild(offCell);
