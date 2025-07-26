@@ -138,12 +138,12 @@
 <body>
 <h1>E‑Number Lookup</h1>
 <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
-  <input type="text" id="search" placeholder="Search by E‑number or name…" maxlength="100" style="flex: 1; min-width: 200px;">
+  <input type="text" id="search" placeholder="Search by E-number or name..." maxlength="100" style="flex: 1; min-width: 200px;">
   <select id="sort" style="padding: 0.5rem; font-size: 1rem;">
     <option value="code">Sort by E-Number</option>
     <option value="name">Sort by Name</option>
   </select>
-  <button id="theme-toggle" class="theme-toggle">🌙 Dark Mode</button>
+  <button id="theme-toggle" class="theme-toggle">Dark Mode</button>
 </div>
 
 <div id="error-container"></div>
@@ -332,7 +332,7 @@ function toggleTheme() {
   
   // Update button text
   const button = document.getElementById('theme-toggle');
-  button.textContent = newTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+  button.textContent = newTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
 }
 
 // Load theme from localStorage on page load
@@ -345,14 +345,21 @@ function loadTheme() {
   }
 }
 
-// Theme toggle handler
-document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+// Initialize theme and event listeners when DOM is ready
+function initializeTheme() {
+  loadTheme();
+  // Add event listener only once
+  const themeButton = document.getElementById('theme-toggle');
+  if (themeButton) {
+    themeButton.addEventListener('click', toggleTheme);
+  }
+}
 
 // Load theme when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', loadTheme);
+  document.addEventListener('DOMContentLoaded', initializeTheme);
 } else {
-  loadTheme();
+  initializeTheme();
 }
 
 // Security: Fetch with error handling and timeout
