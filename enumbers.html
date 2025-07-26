@@ -50,8 +50,10 @@
   }
   
   .container {
-    max-width: 1200px;
+    width: 100%;
+    max-width: 1400px;
     margin: 0 auto;
+    padding: 0 1rem;
   }
   
   h1 { 
@@ -71,7 +73,8 @@
   .search-input-group {
     position: relative;
     flex: 1;
-    min-width: 250px;
+    min-width: 300px;
+    max-width: 600px;
   }
   
   .search-input {
@@ -205,6 +208,7 @@
     background: var(--table-bg);
     transition: background-color 0.3s ease;
     min-width: 600px;
+    table-layout: auto;
   }
   
   th, td { 
@@ -251,6 +255,10 @@
       padding: 0.5rem;
     }
     
+    .container {
+      padding: 0 0.5rem;
+    }
+    
     h1 {
       font-size: 1.5rem;
       margin-bottom: 1rem;
@@ -264,6 +272,7 @@
     
     .search-input-group {
       min-width: auto;
+      max-width: none;
     }
     
     .controls-group {
@@ -292,6 +301,10 @@
   }
   
   @media (max-width: 480px) {
+    .container {
+      padding: 0 0.25rem;
+    }
+    
     .controls-group {
       flex-direction: column;
       align-items: stretch;
@@ -299,6 +312,36 @@
     
     select, .theme-toggle {
       width: 100%;
+    }
+  }
+  
+  /* Large screen optimizations */
+  @media (min-width: 1200px) {
+    .container {
+      max-width: none;
+      padding: 0 2rem;
+    }
+    
+    .search-input-group {
+      max-width: 800px;
+    }
+    
+    table {
+      font-size: 1.1rem;
+    }
+    
+    th, td {
+      padding: 1rem;
+    }
+  }
+  
+  @media (min-width: 1600px) {
+    .container {
+      padding: 0 3rem;
+    }
+    
+    .search-input-group {
+      max-width: 1000px;
     }
   }
 </style>
@@ -443,6 +486,7 @@ function hideLoading() {
 
 function renderTable(filter="") {
   const tbody = document.getElementById('tbody');
+  const resultsInfo = document.getElementById('results-info');
   
   // Clear existing rows
   while (tbody.firstChild) {
@@ -473,6 +517,20 @@ function renderTable(filter="") {
   
   // Limit results for performance
   const limitedEntries = sortedEntries.slice(0, 500);
+  
+  // Show results count
+  if (safeFilter) {
+    const totalResults = filteredEntries.length;
+    const shownResults = limitedEntries.length;
+    let message = `Found ${totalResults} result${totalResults !== 1 ? 's' : ''}`;
+    if (totalResults > 500) {
+      message += ` (showing first 500)`;
+    }
+    resultsInfo.textContent = message;
+    resultsInfo.classList.add('visible');
+  } else {
+    resultsInfo.classList.remove('visible');
+  }
   
   // Create and append rows
   const fragment = document.createDocumentFragment();
