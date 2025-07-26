@@ -32,6 +32,61 @@ install.bat
 sudo ./install-system.sh
 ```
 
+## 🐧 Linux System Installer Guide
+
+The `install-system.sh` script provides a complete production deployment with systemd service, nginx reverse proxy, SSL certificates, and security hardening.
+
+### **Prerequisites**
+- Ubuntu/Debian-based Linux system
+- Root or sudo access
+- Internet connection
+
+### **Installation Process**
+
+1. **Quick Install (One-liner):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/install-system.sh | sudo bash
+```
+
+2. **Manual Install:**
+```bash
+# Download the installer
+wget https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/install-system.sh
+
+# Make executable
+chmod +x install-system.sh
+
+# Run the installer
+sudo ./install-system.sh
+```
+
+### **Installation Options**
+
+During installation, you'll be prompted for:
+
+- **Domain Name**: Your domain (e.g., `enumbers.yourdomain.com`)
+- **Port**: Application port (default: 5000)
+- **Nginx Setup**: Install reverse proxy? (recommended: Yes)
+- **SSL Certificate**: Set up Let's Encrypt SSL? (recommended: Yes)
+- **Editing Mode**: Enable API editing capabilities? (optional)
+
+### **What Gets Installed**
+
+- ✅ **System User**: `enumbers` user and group
+- ✅ **Application**: Installed to `/opt/enumbers`
+- ✅ **Systemd Service**: Auto-start service with security hardening
+- ✅ **Nginx**: Reverse proxy with security headers
+- ✅ **SSL Certificate**: Let's Encrypt automatic certificate
+- ✅ **Log Rotation**: Daily log rotation for 30 days
+- ✅ **Backup System**: Daily automated backups
+- ✅ **Management Commands**: Easy administration tools
+
+### **Post-Installation**
+
+After successful installation, your application will be available at:
+- **HTTP**: `http://yourdomain.com/enumbers.html`
+- **HTTPS**: `https://yourdomain.com/enumbers.html` (if SSL enabled)
+
 ## 🔧 Development Setup
 
 1. Install dependencies:
