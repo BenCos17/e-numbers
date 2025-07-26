@@ -139,11 +139,10 @@ chmod +x $APP_DIR/*.py
 print_info "Configuring Flask to listen on all interfaces..."
 sed -i "s/app.run(debug=True)/app.run(debug=True, host='0.0.0.0', port=$APP_PORT)/" $APP_DIR/api.py
 
-# Remove any static file serving routes from Flask (Apache2 will handle this)
 print_info "Configuring Flask for API-only mode..."
-sed -i '/@app.route.*send_from_directory/d' $APP_DIR/api.py
-sed -i '/def index():/,+2d' $APP_DIR/api.py
-sed -i '/def enumbers_page():/,+2d' $APP_DIR/api.py
+cp $APP_DIR/api.py $APP_DIR/api.py.backup
+git checkout HEAD -- $APP_DIR/api.py
+sed -i "s/app.run(debug=True)/app.run(debug=True, host='0.0.0.0', port=$APP_PORT)/" $APP_DIR/api.py
 
 print_success "Flask configured to listen on all interfaces and serve API only"
 
