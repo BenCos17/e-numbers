@@ -138,7 +138,28 @@ chmod +x $APP_DIR/*.py
 # Fix Flask to listen on all interfaces for Apache2 proxy
 print_info "Configuring Flask to listen on all interfaces..."
 sed -i "s/app.run(debug=True)/app.run(debug=True, host='0.0.0.0', port=$APP_PORT)/" $APP_DIR/api.py
-print_success "Flask configured to listen on all interfaces"
+
+# Remove any static file serving routes from Flask (Apache2 will handle this)
+print_info "Configuring Flask for API-only mode..."
+sed -i '/@app.route.*send_from_directory/d' $APP_DIR/api.py
+sed -i '/def index():/,+2d' $APP_DIR/api.py
+sed -i '/def enumbers_page():/,+2d' $APP_DIR/api.py
+
+print_success "Flask configured to listen on all interfaces and serve API only"
+
+# Add routes to serve HTML file
+print_info "Adding routes to serve HTML file..."
+sed -i '/enumbers = load_enumbers()/a\
+\
+@app.route("/")\
+def index():\
+    return send_from_directory(".", "enumbers.html")\
+\
+@app.route("/enumbers.html")\
+def enumbers_page():\
+    return send_from_directory(".", "enumbers.html")\
+' $APP_DIR/api.py
+print_success "HTML serving routes added to Flask"
 
 print_success "Application files installed"
 
@@ -255,6 +276,9 @@ if [[ $INSTALL_NGINX =~ ^[Yy]$ ]]; then
     ServerName ${DOMAIN_NAME:-localhost}
     ServerAdmin webmaster@${DOMAIN_NAME:-localhost}
     
+    # Set document root to the Flask app directory
+    DocumentRoot $APP_DIR
+    
     # Security headers
     Header always set X-Frame-Options DENY
     Header always set X-Content-Type-Options nosniff
@@ -265,10 +289,17 @@ if [[ $INSTALL_NGINX =~ ^[Yy]$ ]]; then
     ErrorLog \${APACHE_LOG_DIR}/enumbers_error.log
     CustomLog \${APACHE_LOG_DIR}/enumbers_access.log combined
     
-    # Proxy to Flask application
+    # Serve static files directly from the app directory
+    <Directory $APP_DIR>
+        Require all granted
+        DirectoryIndex enumbers.html
+        Options -Indexes
+    </Directory>
+    
+    # Proxy API requests to Flask
     ProxyPreserveHost On
-    ProxyPass / http://127.0.0.1:$APP_PORT/
-    ProxyPassReverse / http://127.0.0.1:$APP_PORT/
+    ProxyPass /api/ http://127.0.0.1:$APP_PORT/api/
+    ProxyPassReverse /api/ http://127.0.0.1:$APP_PORT/api/
     
     # Static files caching
     <LocationMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg)$">
