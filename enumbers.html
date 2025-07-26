@@ -496,7 +496,7 @@ function createTableRow(entry) {
   } else {
     const span = document.createElement('span');
     span.className = 'no-data';
-    span.textContent = '—';
+    span.textContent = '-';
     offCell.appendChild(span);
   }
   row.appendChild(offCell);
@@ -515,8 +515,8 @@ function createTableRow(entry) {
     wikiCell.appendChild(wikiLink);
   } else {
     const span = document.createElement('span');
-    span.style.color = '#bbb';
-    span.textContent = '(none)';
+    span.className = 'no-data';
+    span.textContent = '-';
     wikiCell.appendChild(span);
   }
   row.appendChild(wikiCell);
@@ -525,7 +525,7 @@ function createTableRow(entry) {
   const researchCell = document.createElement('td');
   const researchLink = document.createElement('a');
   researchLink.href = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(entry.code + ' ' + entry.name + ' food additive')}`;
-  researchLink.textContent = 'PubMed';
+  researchLink.textContent = 'PubMed Search';
   researchLink.target = '_blank';
   researchLink.rel = 'noopener noreferrer';
   researchLink.title = 'Search scientific literature';
