@@ -18,6 +18,8 @@
     --error-text: #dc3545;
     --loading-color: #6c757d;
     --placeholder-color: #bbb;
+    --success-color: #28a745;
+    --info-color: #17a2b8;
   }
 
   [data-theme="dark"] {
@@ -33,60 +35,145 @@
     --error-text: #ff6b6b;
     --loading-color: #a0a0a0;
     --placeholder-color: #666;
+    --success-color: #4caf50;
+    --info-color: #2196f3;
   }
 
   body { 
-    font-family: Arial, sans-serif; 
-    margin: 2rem; 
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    margin: 0;
+    padding: 1rem;
     background: var(--bg-color);
     color: var(--text-color);
     transition: background-color 0.3s ease, color 0.3s ease;
+    line-height: 1.6;
   }
   
-  h1 { margin-bottom: 1rem; }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
   
-  input { 
-    padding: 0.5rem; 
-    width: 100%; 
-    max-width: 400px; 
-    margin-bottom: 1rem; 
+  h1 { 
+    margin-bottom: 1.5rem; 
+    font-size: 2rem;
+    font-weight: 600;
+  }
+  
+  .search-container {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .search-input-group {
+    position: relative;
+    flex: 1;
+    min-width: 250px;
+  }
+  
+  .search-input {
+    width: 100%;
+    padding: 0.75rem 2.5rem 0.75rem 0.75rem;
     font-size: 1rem;
     background: var(--input-bg);
     color: var(--text-color);
     border: 1px solid var(--input-border);
-    border-radius: 4px;
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
   }
   
-  input::placeholder {
+  .search-input:focus {
+    outline: none;
+    border-color: var(--info-color);
+    box-shadow: 0 0 0 3px rgba(23, 162, 184, 0.1);
+  }
+  
+  .search-input::placeholder {
     color: var(--placeholder-color);
   }
   
+  .clear-search {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--placeholder-color);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0.25rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: none;
+  }
+  
+  .clear-search:hover {
+    background: var(--header-bg);
+    color: var(--text-color);
+  }
+  
+  .clear-search.visible {
+    display: block;
+  }
+  
+  .controls-group {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
   select {
+    padding: 0.75rem;
+    font-size: 1rem;
     background: var(--input-bg);
     color: var(--text-color);
     border: 1px solid var(--input-border);
-    border-radius: 4px;
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    cursor: pointer;
   }
   
-  table { 
-    border-collapse: collapse; 
-    width: 100%; 
-    background: var(--table-bg);
-    transition: background-color 0.3s ease;
+  select:focus {
+    outline: none;
+    border-color: var(--info-color);
+    box-shadow: 0 0 0 3px rgba(23, 162, 184, 0.1);
   }
   
-  th, td { 
-    border: 1px solid var(--table-border); 
-    padding: 0.5rem; 
-    text-align: left;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+  .theme-toggle {
+    background: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
   }
-  
-  th { 
+
+  .theme-toggle:hover {
     background: var(--header-bg);
-    transition: background-color 0.3s ease;
+    border-color: var(--info-color);
+  }
+  
+  .results-info {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--info-color);
+    color: white;
+    border-radius: 6px;
+    font-weight: 500;
+    display: none;
+  }
+  
+  .results-info.visible {
+    display: block;
   }
   
   .error { 
@@ -94,9 +181,9 @@
     padding: 1rem; 
     background: var(--error-bg); 
     border: 1px solid var(--error-border); 
-    border-radius: 0.25rem; 
+    border-radius: 6px; 
     margin-bottom: 1rem;
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    transition: all 0.3s ease;
   }
   
   .loading { 
@@ -106,56 +193,148 @@
     transition: color 0.3s ease;
   }
 
-  .theme-toggle {
-    background: var(--input-bg);
-    color: var(--text-color);
-    border: 1px solid var(--input-border);
-    border-radius: 4px;
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  .table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
-
-  .theme-toggle:hover {
+  
+  table { 
+    border-collapse: collapse; 
+    width: 100%; 
+    background: var(--table-bg);
+    transition: background-color 0.3s ease;
+    min-width: 600px;
+  }
+  
+  th, td { 
+    border: 1px solid var(--table-border); 
+    padding: 0.75rem; 
+    text-align: left;
+    transition: all 0.3s ease;
+  }
+  
+  th { 
+    background: var(--header-bg);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  tr:hover {
     background: var(--header-bg);
   }
-
+  
   a {
-    color: #007bff;
+    color: var(--info-color);
     text-decoration: none;
+    transition: color 0.2s ease;
   }
 
   a:hover {
     text-decoration: underline;
+    color: var(--text-color);
   }
 
   [data-theme="dark"] a {
     color: #4da6ff;
   }
+  
+  [data-theme="dark"] a:hover {
+    color: #66b3ff;
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 768px) {
+    body {
+      padding: 0.5rem;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .search-container {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.75rem;
+    }
+    
+    .search-input-group {
+      min-width: auto;
+    }
+    
+    .controls-group {
+      justify-content: space-between;
+    }
+    
+    select, .theme-toggle {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .table-container {
+      margin: 0 -0.5rem;
+      border-radius: 0;
+    }
+    
+    th, td {
+      padding: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .results-info {
+      margin: 0 -0.5rem 1rem -0.5rem;
+      border-radius: 0;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .controls-group {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    select, .theme-toggle {
+      width: 100%;
+    }
+  }
 </style>
 </head>
 <body>
-<h1>E‑Number Lookup</h1>
-<div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
-  <input type="text" id="search" placeholder="Search by E-number or name..." maxlength="100" style="flex: 1; min-width: 200px;">
-  <select id="sort" style="padding: 0.5rem; font-size: 1rem;">
-    <option value="code">Sort by E-Number</option>
-    <option value="name">Sort by Name</option>
-  </select>
-  <button id="theme-toggle" class="theme-toggle">Dark Mode</button>
+<div class="container">
+  <h1>E‑Number Lookup</h1>
+  
+  <div class="search-container">
+    <div class="search-input-group">
+      <input type="text" id="search" class="search-input" placeholder="Search by E-number or name..." maxlength="100">
+      <button id="clear-search" class="clear-search" title="Clear search">×</button>
+    </div>
+    <div class="controls-group">
+      <select id="sort">
+        <option value="code">Sort by E-Number</option>
+        <option value="name">Sort by Name</option>
+      </select>
+      <button id="theme-toggle" class="theme-toggle">Dark Mode</button>
+    </div>
+  </div>
+
+  <div id="results-info" class="results-info"></div>
+  <div id="error-container"></div>
+  <div id="loading" class="loading" style="display:none;">Loading...</div>
+
+  <div class="table-container">
+    <table id="etable">
+      <thead>
+        <tr><th>E‑Number</th><th>Name</th><th>Open Food Facts</th><th>Wikidata</th></tr>
+      </thead>
+      <tbody id="tbody">
+      </tbody>
+    </table>
+  </div>
 </div>
-
-<div id="error-container"></div>
-<div id="loading" class="loading" style="display:none;">Loading...</div>
-
-<table id="etable">
-  <thead>
-    <tr><th>E‑Number</th><th>Name</th><th>Open Food Facts</th><th>Wikidata</th></tr>
-  </thead>
-  <tbody id="tbody">
-  </tbody>
-</table>
 
 <script>
 let enumbers = [];
@@ -313,6 +492,15 @@ document.getElementById('search').addEventListener('input', function(e) {
       e.target.value = query.substring(0, 100);
       return;
     }
+    
+    // Show/hide clear button
+    const clearButton = document.getElementById('clear-search');
+    if (query.length > 0) {
+      clearButton.classList.add('visible');
+    } else {
+      clearButton.classList.remove('visible');
+    }
+    
     renderTable(query);
   }, 300); // 300ms debounce
 });
@@ -321,6 +509,13 @@ document.getElementById('search').addEventListener('input', function(e) {
 document.getElementById('sort').addEventListener('change', function(e) {
   currentSort = e.target.value;
   renderTable(document.getElementById('search').value);
+});
+
+// Clear search button handler
+document.getElementById('clear-search').addEventListener('click', function() {
+  document.getElementById('search').value = '';
+  document.getElementById('clear-search').classList.remove('visible');
+  renderTable();
 });
 
 // Theme toggle functionality
