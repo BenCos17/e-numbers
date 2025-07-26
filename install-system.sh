@@ -134,24 +134,39 @@ print_info "Installing application files..."
 cp -r . $APP_DIR/
 chown -R $APP_USER:$APP_GROUP $APP_DIR
 chmod +x $APP_DIR/*.py
+print_success "Application files installed"
 
 # Create virtual environment
 print_info "Creating Python virtual environment..."
-sudo -u $APP_USER python3 -m venv $APP_DIR/venv
+if [[ ! -d "$APP_DIR/venv" ]]; then
+    sudo -u $APP_USER python3 -m venv $APP_DIR/venv
+fi
 sudo -u $APP_USER $APP_DIR/venv/bin/pip install --upgrade pip
 sudo -u $APP_USER $APP_DIR/venv/bin/pip install -r $APP_DIR/requirements.txt
 print_success "Virtual environment created and dependencies installed"
 
 # Move data file to data directory
 if [[ -f "$APP_DIR/enumbers.json" ]]; then
-    mv $APP_DIR/enumbers.json $DATA_DIR/
-    chown $APP_USER:$APP_GROUP $DATA_DIR/enumbers.json
-    ln -sf $DATA_DIR/enumbers.json $APP_DIR/enumbers.json
-    print_success "Data file moved to $DATA_DIR"
+    # Check if it's already a symlink or if the target already exists
+    if [[ -L "$APP_DIR/enumbers.json" ]]; then
+        print_info "Data file already linked to $DATA_DIR"
+    elif [[ -f "$DATA_DIR/enumbers.json" ]]; then
+        # Target already exists, just create symlink
+        rm -f $APP_DIR/enumbers.json
+        ln -sf $DATA_DIR/enumbers.json $APP_DIR/enumbers.json
+        print_success "Data file linked to $DATA_DIR"
+    else
+        # Move the file and create symlink
+        mv $APP_DIR/enumbers.json $DATA_DIR/
+        chown $APP_USER:$APP_GROUP $DATA_DIR/enumbers.json
+        ln -sf $DATA_DIR/enumbers.json $APP_DIR/enumbers.json
+        print_success "Data file moved to $DATA_DIR"
+    fi
 fi
 
 # Create configuration file
 print_info "Creating configuration file..."
+mkdir -p $CONFIG_DIR
 cat > $CONFIG_DIR/enumbers.conf << EOF
 # E-Numbers Application Configuration
 PORT=$APP_PORT
