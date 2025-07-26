@@ -6,19 +6,19 @@ A web application for looking up E-number food additives with data from Open Foo
 
 ### **Windows (Development)**
 ```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/e-numbers/main/install.bat" -OutFile "install.bat"; .\install.bat
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/install.bat" -OutFile "install.bat"; .\install.bat
 ```
 
 ### **Linux (Production Server)**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/e-numbers/main/install-system.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/install-system.sh | sudo bash
 ```
 
 ## 📦 Manual Installation
 
 ### **Clone Repository**
 ```bash
-git clone https://github.com/YOUR_USERNAME/e-numbers.git
+git clone https://github.com/JARVIS-discordbot/e-numbers.git
 cd e-numbers
 ```
 
