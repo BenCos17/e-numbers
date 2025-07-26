@@ -341,7 +341,7 @@ function loadTheme() {
   if (savedTheme) {
     document.documentElement.setAttribute('data-theme', savedTheme);
     const button = document.getElementById('theme-toggle');
-    button.textContent = savedTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+    button.textContent = savedTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
   }
 }
 
