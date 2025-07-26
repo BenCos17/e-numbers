@@ -26,6 +26,18 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+echo Downloading application files...
+powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/requirements.txt' -OutFile 'requirements.txt'"
+powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/api.py' -OutFile 'api.py'"
+powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/enumbers.html' -OutFile 'enumbers.html'"
+powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/enumbers.json' -OutFile 'enumbers.json'"
+
+if not exist requirements.txt (
+    echo ERROR: Failed to download requirements.txt
+    pause
+    exit /b 1
+)
+
 echo Installing dependencies...
 python -m pip install -r requirements.txt
 if %errorlevel% neq 0 (
