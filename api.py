@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request, abort, send_from_directory
 import json
 import os
 import requests
@@ -273,6 +273,14 @@ scheduler.add_job(update_enumbers_from_off_additives_logic, 'interval', days=1)
 scheduler.start()
 
 enumbers = load_enumbers()
+
+@app.route('/')
+def index():
+    return send_from_directory('.', 'enumbers.html')
+
+@app.route('/enumbers.html')
+def enumbers_page():
+    return send_from_directory('.', 'enumbers.html')
 
 @app.route('/api/enumbers', methods=['GET'])
 def get_enumbers():
