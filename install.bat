@@ -26,11 +26,29 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+:: Check if git is available
+git --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ERROR: Git is not installed or not in PATH
+    echo Please install Git from https://git-scm.com
+    pause
+    exit /b 1
+)
+
+echo Git found:
+git --version
+echo.
+
 echo Downloading application files...
-curl -fsSL "https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/requirements.txt" -o requirements.txt
-curl -fsSL "https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/api.py" -o api.py
-curl -fsSL "https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/enumbers.html" -o enumbers.html
-curl -fsSL "https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/enumbers.json" -o enumbers.json
+if exist e-numbers (
+    echo Updating existing repository...
+    cd e-numbers
+    git pull origin main
+) else (
+    echo Cloning repository...
+    git clone https://github.com/JARVIS-discordbot/e-numbers.git
+    cd e-numbers
+)
 
 if not exist requirements.txt (
     echo ERROR: Failed to download requirements.txt
