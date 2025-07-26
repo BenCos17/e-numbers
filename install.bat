@@ -39,25 +39,39 @@ echo Git found:
 git --version
 echo.
 
-echo Downloading application files...
-if exist e-numbers (
+:: Set up the application directory
+set APP_DIR=e-numbers
+set REPO_URL=https://github.com/JARVIS-discordbot/e-numbers.git
+
+echo Setting up E-Numbers application...
+echo.
+
+:: Clone or update the repository
+if exist %APP_DIR% (
     echo Updating existing repository...
-    cd e-numbers
-    git pull origin main
+    cd %APP_DIR%
+    git fetch origin
+    git reset --hard origin/main
+    echo Repository updated!
 ) else (
-    echo Cloning repository...
-    git clone https://github.com/JARVIS-discordbot/e-numbers.git
-    cd e-numbers
+    echo Cloning repository from GitHub...
+    git clone %REPO_URL% %APP_DIR%
+    cd %APP_DIR%
+    echo Repository cloned!
 )
 
+echo.
+
+:: Check if we're in the right directory
 if not exist requirements.txt (
-    echo ERROR: Failed to download requirements.txt
+    echo ERROR: Failed to get application files
     echo Please check your internet connection
     pause
     exit /b 1
 )
 
-echo Installing dependencies...
+:: Install Python dependencies
+echo Installing Python dependencies...
 python -m pip install -r requirements.txt
 if %errorlevel% neq 0 (
     echo ERROR: Failed to install dependencies
@@ -69,6 +83,8 @@ echo.
 echo ==========================================
 echo Installation completed successfully!
 echo ==========================================
+echo.
+echo Application files are in: %CD%
 echo.
 echo To run the application:
 echo   1. Basic mode: python api.py
@@ -86,4 +102,6 @@ start http://localhost:5000/enumbers.html
 
 echo.
 echo Application started! Check your browser.
+echo.
+echo To update the application later, run: git pull origin main
 pause 
