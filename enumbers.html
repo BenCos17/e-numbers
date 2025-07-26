@@ -17,7 +17,13 @@
 </head>
 <body>
 <h1>E‑Number Lookup</h1>
-<input type="text" id="search" placeholder="Search by E‑number or name…" maxlength="100">
+<div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+  <input type="text" id="search" placeholder="Search by E‑number or name…" maxlength="100" style="flex: 1; min-width: 200px;">
+  <select id="sort" style="padding: 0.5rem; font-size: 1rem;">
+    <option value="code">Sort by E-Number</option>
+    <option value="name">Sort by Name</option>
+  </select>
+</div>
 
 <div id="error-container"></div>
 <div id="loading" class="loading" style="display:none;">Loading...</div>
@@ -33,6 +39,7 @@
 <script>
 let enumbers = [];
 let searchTimeout;
+let currentSort = 'code';
 
 // Security: HTML escaping function
 function escapeHtml(text) {
@@ -145,14 +152,27 @@ function renderTable(filter="") {
   // Security: Escape filter input
   const safeFilter = filter.toLowerCase().trim();
   
-  // Filter and render entries
+  // Filter entries
   const filteredEntries = enumbers.filter(e => 
     e.code.toLowerCase().includes(safeFilter) || 
     e.name.toLowerCase().includes(safeFilter)
   );
   
+  // Sort entries
+  const sortedEntries = filteredEntries.sort((a, b) => {
+    if (currentSort === 'code') {
+      // Sort by E-number (numerical order)
+      const aNum = parseInt(a.code.replace(/[^0-9]/g, ''));
+      const bNum = parseInt(b.code.replace(/[^0-9]/g, ''));
+      return aNum - bNum;
+    } else {
+      // Sort by name (alphabetical)
+      return a.name.localeCompare(b.name);
+    }
+  });
+  
   // Limit results for performance
-  const limitedEntries = filteredEntries.slice(0, 500);
+  const limitedEntries = sortedEntries.slice(0, 500);
   
   // Create and append rows
   const fragment = document.createDocumentFragment();
@@ -174,6 +194,12 @@ document.getElementById('search').addEventListener('input', function(e) {
     }
     renderTable(query);
   }, 300); // 300ms debounce
+});
+
+// Sort dropdown change handler
+document.getElementById('sort').addEventListener('change', function(e) {
+  currentSort = e.target.value;
+  renderTable(document.getElementById('search').value);
 });
 
 // Security: Fetch with error handling and timeout
