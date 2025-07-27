@@ -484,6 +484,7 @@ function getCategory(code) {
   if (code.toUpperCase().includes('E14XX')) return 'Modified Starches';
   if (code.toUpperCase().includes('E15XX')) return 'Additional Chemicals';
   if (code === 'E14') return 'Modified Starches'; // Special case for E14
+  if (code === 'E15') return 'Additional Chemicals'; // Special case for E15
   
   const num = parseInt(code.replace(/[^0-9]/g, ''));
   
