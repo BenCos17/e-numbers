@@ -4,7 +4,7 @@ A web application for looking up E-number food additives with data from Open Foo
 
 ## 🚀 Quick Installation
 
-### **Windows (Development)**
+### **Windows (Development)** (needs powershell)
 ```powershell
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/JARVIS-discordbot/e-numbers/main/install.bat" -OutFile "install.bat"; .\install.bat
 ```
