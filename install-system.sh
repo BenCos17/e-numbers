@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 # E-Numbers Application System Installer
@@ -39,7 +40,7 @@ echo "  • Create system user and group"
 echo "  • Install application to $APP_DIR"
 echo "  • Create systemd service"
 echo "  • Set up log rotation"
-echo "  • Configure Apache2 reverse proxy (optional)"
+echo "  • Configure Nginx reverse proxy (optional)"
 echo "  • Set up SSL with Let's Encrypt (optional)"
 echo
 
@@ -62,7 +63,7 @@ read -p "Enter domain name for the application (e.g., enumbers.example.com): " D
 read -p "Enter port for the application [5000]: " APP_PORT
 APP_PORT=${APP_PORT:-5000}
 
-read -p "Do you want to install Apache2 reverse proxy? [y/N]: " INSTALL_NGINX
+read -p "Do you want to install Nginx reverse proxy? [y/N]: " INSTALL_NGINX
 read -p "Do you want to enable editing capabilities? [y/N]: " ENABLE_EDITING
 
 if [[ $INSTALL_NGINX =~ ^[Yy]$ ]]; then
@@ -80,7 +81,7 @@ echo
 print_info "Installing with the following configuration:"
 echo "  • Domain: ${DOMAIN_NAME:-localhost}"
 echo "  • Port: $APP_PORT"
-echo "  • Apache2: ${INSTALL_NGINX:-No}"
+echo "  • Nginx: ${INSTALL_NGINX:-No}"
 echo "  • SSL: ${SETUP_SSL:-No}"
 if [[ $SETUP_SSL =~ ^[Yy]$ ]]; then
     echo "  • SSL Email: $CERTBOT_EMAIL"
@@ -101,9 +102,9 @@ print_success "System packages updated"
 
 # Install required system packages
 print_info "Installing required system packages..."
-PACKAGES="python3 python3-pip python3-venv apache2 logrotate"
+PACKAGES="python3 python3-pip nginx logrotate git curl"
 if [[ $SETUP_SSL =~ ^[Yy]$ ]]; then
-    PACKAGES="$PACKAGES certbot python3-certbot-apache"
+    PACKAGES="$PACKAGES certbot python3-certbot-nginx"
 fi
 apt install -y $PACKAGES
 print_success "System packages installed"
@@ -135,54 +136,22 @@ cp -r . $APP_DIR/
 chown -R $APP_USER:$APP_GROUP $APP_DIR
 chmod +x $APP_DIR/*.py
 
-# Fix Flask to listen on all interfaces for Apache2 proxy
-print_info "Configuring Flask to listen on all interfaces..."
-sed -i "s/app.run(debug=True)/app.run(debug=True, host='0.0.0.0', port=$APP_PORT)/" $APP_DIR/api.py
-
-print_info "Configuring Flask for API-only mode..."
-cp $APP_DIR/api.py $APP_DIR/api.py.backup
-git checkout HEAD -- $APP_DIR/api.py
-sed -i "s/app.run(debug=True)/app.run(debug=True, host='0.0.0.0', port=$APP_PORT)/" $APP_DIR/api.py
-
-print_success "Flask configured to listen on all interfaces and serve API only"
-
-# Add routes to serve HTML file
-print_info "Adding routes to serve HTML file..."
-sed -i '/enumbers = load_enumbers()/a\
-\
-@app.route("/")\
-def index():\
-    return send_from_directory(".", "enumbers.html")\
-\
-@app.route("/enumbers.html")\
-def enumbers_page():\
-    return send_from_directory(".", "enumbers.html")\
-' $APP_DIR/api.py
-print_success "HTML serving routes added to Flask"
-
 print_success "Application files installed"
 
-# Create virtual environment
-print_info "Creating Python virtual environment..."
-if [[ ! -d "$APP_DIR/venv" ]]; then
-    sudo -u $APP_USER python3 -m venv $APP_DIR/venv
-fi
-sudo -u $APP_USER $APP_DIR/venv/bin/pip install --upgrade pip
-sudo -u $APP_USER $APP_DIR/venv/bin/pip install -r $APP_DIR/requirements.txt
-print_success "Virtual environment created and dependencies installed"
+# Install Python dependencies
+print_info "Installing Python dependencies..."
+pip3 install -r $APP_DIR/pyproject.toml
+print_success "Python dependencies installed"
 
 # Move data file to data directory
 if [[ -f "$APP_DIR/enumbers.json" ]]; then
-    # Check if it's already a symlink or if the target already exists
     if [[ -L "$APP_DIR/enumbers.json" ]]; then
         print_info "Data file already linked to $DATA_DIR"
     elif [[ -f "$DATA_DIR/enumbers.json" ]]; then
-        # Target already exists, just create symlink
         rm -f $APP_DIR/enumbers.json
         ln -sf $DATA_DIR/enumbers.json $APP_DIR/enumbers.json
         print_success "Data file linked to $DATA_DIR"
     else
-        # Move the file and create symlink
         mv $APP_DIR/enumbers.json $DATA_DIR/
         chown $APP_USER:$APP_GROUP $DATA_DIR/enumbers.json
         ln -sf $DATA_DIR/enumbers.json $APP_DIR/enumbers.json
@@ -196,7 +165,7 @@ mkdir -p $CONFIG_DIR
 cat > $CONFIG_DIR/enumbers.conf << EOF
 # E-Numbers Application Configuration
 PORT=$APP_PORT
-HOST=127.0.0.1
+HOST=0.0.0.0
 DEBUG=false
 ALLOW_EDITING=${ENABLE_EDITING,,}
 DATA_FILE=$DATA_DIR/enumbers.json
@@ -220,8 +189,7 @@ Type=simple
 User=$APP_USER
 Group=$APP_GROUP
 WorkingDirectory=$APP_DIR
-Environment=PATH=$APP_DIR/venv/bin
-ExecStart=$APP_DIR/venv/bin/python api.py$([ "$ENABLE_EDITING" = "y" ] && echo " --allow-editing" || echo "")
+ExecStart=/usr/bin/python3 api.py$([ "$ENABLE_EDITING" = "y" ] && echo " --allow-editing" || echo "")
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=always
 RestartSec=10
@@ -260,61 +228,49 @@ $LOG_DIR/*.log {
 EOF
 print_success "Log rotation configured"
 
-# Set up Apache2 if requested
+# Set up Nginx if requested
 if [[ $INSTALL_NGINX =~ ^[Yy]$ ]]; then
-    print_info "Configuring Apache2 reverse proxy..."
+    print_info "Configuring Nginx reverse proxy..."
     
-    # Enable required Apache modules
-    a2enmod proxy
-    a2enmod proxy_http
-    a2enmod headers
-    a2enmod rewrite
-    
-    cat > /etc/apache2/sites-available/enumbers.conf << EOF
-<VirtualHost *:80>
-    ServerName ${DOMAIN_NAME:-localhost}
-    ServerAdmin webmaster@${DOMAIN_NAME:-localhost}
-    
-    # Set document root to the Flask app directory
-    DocumentRoot $APP_DIR
+    cat > $NGINX_AVAILABLE/enumbers << EOF
+server {
+    listen 80;
+    server_name ${DOMAIN_NAME:-localhost};
     
     # Security headers
-    Header always set X-Frame-Options DENY
-    Header always set X-Content-Type-Options nosniff
-    Header always set X-XSS-Protection "1; mode=block"
-    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    add_header X-Frame-Options DENY always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     
     # Logs
-    ErrorLog \${APACHE_LOG_DIR}/enumbers_error.log
-    CustomLog \${APACHE_LOG_DIR}/enumbers_access.log combined
+    access_log /var/log/nginx/enumbers_access.log;
+    error_log /var/log/nginx/enumbers_error.log;
     
-    # Serve static files directly from the app directory
-    <Directory $APP_DIR>
-        Require all granted
-        DirectoryIndex enumbers.html
-        Options -Indexes
-    </Directory>
+    location / {
+        proxy_pass http://127.0.0.1:$APP_PORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
     
-    # Proxy API requests to Flask
-    ProxyPreserveHost On
-    ProxyPass /api/ http://127.0.0.1:$APP_PORT/api/
-    ProxyPassReverse /api/ http://127.0.0.1:$APP_PORT/api/
-    
-    # Static files caching
-    <LocationMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg)$">
-        Header set Cache-Control "public, max-age=31536000, immutable"
-    </LocationMatch>
-</VirtualHost>
+    location ~* \.(css|js|png|jpg|jpeg|gif|ico|svg)$ {
+        proxy_pass http://127.0.0.1:$APP_PORT;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
 EOF
 
     # Enable the site
-    a2ensite enumbers.conf
+    ln -sf $NGINX_AVAILABLE/enumbers $NGINX_ENABLED/
     
-    # Test Apache configuration
-    if apache2ctl configtest; then
-        print_success "Apache2 configuration is valid"
+    # Test Nginx configuration
+    if nginx -t; then
+        print_success "Nginx configuration is valid"
     else
-        print_error "Apache2 configuration has errors"
+        print_error "Nginx configuration has errors"
         exit 1
     fi
 fi
@@ -326,8 +282,8 @@ systemctl enable enumbers.service
 systemctl start enumbers.service
 
 if [[ $INSTALL_NGINX =~ ^[Yy]$ ]]; then
-    systemctl enable apache2
-    systemctl restart apache2
+    systemctl enable nginx
+    systemctl restart nginx
 fi
 
 # Wait for service to start
@@ -337,7 +293,6 @@ sleep 3
 if systemctl is-active --quiet enumbers.service; then
     print_success "E-Numbers service is running"
     
-    # Verify Flask is listening on the correct interface
     if netstat -tlnp | grep -q ":$APP_PORT.*LISTEN"; then
         print_success "Flask application is listening on port $APP_PORT"
     else
@@ -353,21 +308,18 @@ fi
 if [[ $SETUP_SSL =~ ^[Yy]$ && $INSTALL_NGINX =~ ^[Yy]$ ]]; then
     print_info "Setting up SSL certificate..."
     
-    # Ensure Apache2 is running before certbot
-    systemctl restart apache2
+    systemctl restart nginx
     
-    # Run certbot with proper flags
-    certbot --apache -d $DOMAIN_NAME --non-interactive --agree-tos --email $CERTBOT_EMAIL --redirect
+    certbot --nginx -d $DOMAIN_NAME --non-interactive --agree-tos --email $CERTBOT_EMAIL --redirect
     if [[ $? -eq 0 ]]; then
         print_success "SSL certificate installed"
         
-        # Verify the SSL configuration
         print_info "Verifying SSL configuration..."
-        apache2ctl configtest
-        systemctl reload apache2
+        nginx -t
+        systemctl reload nginx
     else
         print_warning "SSL certificate installation failed"
-        print_info "You can manually run: certbot --apache -d $DOMAIN_NAME"
+        print_info "You can manually run: certbot --nginx -d $DOMAIN_NAME"
     fi
 fi
 
@@ -421,8 +373,8 @@ echo "Uninstalling E-Numbers Application..."
 systemctl stop enumbers.service
 systemctl disable enumbers.service
 rm -f $SYSTEMD_DIR/enumbers.service
-a2dissite enumbers.conf
-rm -f /etc/apache2/sites-available/enumbers.conf
+rm -f $NGINX_ENABLED/enumbers
+rm -f $NGINX_AVAILABLE/enumbers
 rm -rf $APP_DIR $LOG_DIR $CONFIG_DIR
 userdel $APP_USER
 groupdel $APP_GROUP
@@ -430,7 +382,7 @@ rm -f /etc/logrotate.d/enumbers
 rm -f /usr/local/bin/enumbers-*
 crontab -l | grep -v enumbers-backup | crontab -
 systemctl daemon-reload
-systemctl reload apache2
+systemctl reload nginx
 echo "E-Numbers Application uninstalled"
 EOF
 chmod +x /usr/local/bin/enumbers-uninstall
@@ -476,13 +428,6 @@ echo "  • Check service status: systemctl status enumbers.service"
 echo "  • View recent logs: journalctl -u enumbers.service -n 20"
 echo "  • Check if Flask is listening: netstat -tlnp | grep :$APP_PORT"
 echo "  • Test API directly: curl http://127.0.0.1:$APP_PORT/api/enumbers"
-echo "  • Check Apache2 status: systemctl status apache2"
-echo "  • Test Apache2 config: apache2ctl configtest"
-echo "  • View Apache2 logs: tail -f /var/log/apache2/error.log"
-echo
-print_info "If you encounter issues:"
-echo "  1. Check the service logs: journalctl -u enumbers.service -f"
-echo "  2. Verify Flask is listening on 0.0.0.0:$APP_PORT"
-echo "  3. Test the API endpoint directly"
-echo "  4. Check Apache2 proxy configuration"
-echo "  5. Ensure SSL certificate is valid (if using HTTPS)" 
+echo "  • Check Nginx status: systemctl status nginx"
+echo "  • Test Nginx config: nginx -t"
+echo "  • View Nginx logs: tail -f /var/log/nginx/error.log"
