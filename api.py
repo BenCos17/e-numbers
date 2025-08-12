@@ -39,22 +39,22 @@ def add_security_headers(response):
         "upgrade-insecure-requests"            # Force HTTPS upgrades
     )
     response.headers['Content-Security-Policy'] = csp
-    
+
     # X-Content-Type-Options - prevent MIME type sniffing
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    
+
     # X-Frame-Options - prevent clickjacking
     response.headers['X-Frame-Options'] = 'DENY'
-    
+
     # X-XSS-Protection - enable XSS filtering
     response.headers['X-XSS-Protection'] = '1; mode=block'
-    
+
     # Strict-Transport-Security - enforce HTTPS (uncomment for production with HTTPS)
     # response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    
+
     # Referrer-Policy - control referrer information
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    
+
     # Permissions-Policy - control browser features
     response.headers['Permissions-Policy'] = (
         "geolocation=(), "
@@ -66,7 +66,7 @@ def add_security_headers(response):
         "gyroscope=(), "
         "speaker=()"
     )
-    
+
     return response
 
 EN_FILE = 'enumbers.json'
@@ -84,7 +84,7 @@ def sanitize_string(input_str, max_length=200):
     """Sanitize string input to prevent XSS and limit length"""
     if not isinstance(input_str, str):
         return ""
-    
+
     # Remove HTML tags and limit length
     cleaned = bleach.clean(input_str.strip(), tags=[], strip=True)
     return cleaned[:max_length]
@@ -93,7 +93,7 @@ def sanitize_code(code):
     """Sanitize E-number code input"""
     if not isinstance(code, str):
         return ""
-    
+
     # Only allow E followed by numbers, letters, and specific characters
     sanitized = re.sub(r'[^E0-9a-zA-Z\-]', '', code.upper().strip())
     return sanitized[:10]  # Limit length
@@ -102,11 +102,11 @@ def validate_json_input(data, required_fields):
     """Validate JSON input and required fields"""
     if not data or not isinstance(data, dict):
         return False, "Invalid JSON data"
-    
+
     for field in required_fields:
         if field not in data or not data[field]:
             return False, f"Missing required field: {field}"
-    
+
     return True, None
 
 def check_editing_allowed():
@@ -126,14 +126,14 @@ def save_enumbers(data):
         # Security: Validate data before saving
         if not isinstance(data, list):
             raise ValueError("Data must be a list")
-        
+
         # Remove spaces from the 'code' field for every entry before saving
         for entry in data:
             if 'code' in entry:
                 entry['code'] = sanitize_code(entry['code'])
             if 'name' in entry:
                 entry['name'] = sanitize_string(entry['name'], 500)
-                
+
         with open(EN_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
@@ -144,7 +144,7 @@ def save_enumbers(data):
 def fetch_openfoodfacts_product(barcode):
     # Security: Sanitize barcode input
     clean_barcode = re.sub(r'[^0-9E\-a-zA-Z]', '', str(barcode))[:50]
-    
+
     url = f"https://world.openfoodfacts.org/api/v2/product/{clean_barcode}.json"
     headers = {"User-Agent": USER_AGENT}
     try:
@@ -287,10 +287,10 @@ def get_enumbers():
     global enumbers
     # Security: Sanitize query parameter
     query = sanitize_string(request.args.get('q', ''), 100).lower()
-    
+
     # Security: Limit results to prevent DoS
     limit = min(int(request.args.get('limit', 1000)), 2000)
-    
+
     if query:
         filtered = [e for e in enumbers if query in e['code'].lower() or query in e['name'].lower()]
         return jsonify(filtered[:limit])
@@ -301,26 +301,26 @@ def create_enumber():
     denied = check_editing_allowed()
     if denied:
         return denied
-    
+
     global enumbers
     data = request.get_json()
-    
+
     # Security: Validate input
     is_valid, error_msg = validate_json_input(data, ['code', 'name'])
     if not is_valid:
         return jsonify({'error': error_msg}), 400
-    
+
     # Security: Sanitize inputs
     clean_code = sanitize_code(data['code'])
     clean_name = sanitize_string(data['name'], 500)
-    
+
     if not clean_code or not clean_name:
         return jsonify({'error': 'Invalid code or name format'}), 400
-    
+
     # Check for duplicates
     if any(e['code'] == clean_code for e in enumbers):
         return jsonify({'error': 'E-number already exists'}), 409
-    
+
     new_entry = {'code': clean_code, 'name': clean_name}
     enumbers.append(new_entry)
     save_enumbers(enumbers)
@@ -331,22 +331,22 @@ def update_enumber(code):
     denied = check_editing_allowed()
     if denied:
         return denied
-    
+
     global enumbers
     data = request.get_json()
-    
+
     # Security: Validate input
     is_valid, error_msg = validate_json_input(data, ['name'])
     if not is_valid:
         return jsonify({'error': error_msg}), 400
-    
+
     # Security: Sanitize inputs
     clean_code = sanitize_code(code)
     clean_name = sanitize_string(data['name'], 500)
-    
+
     if not clean_code or not clean_name:
         return jsonify({'error': 'Invalid code or name format'}), 400
-    
+
     for e in enumbers:
         if e['code'] == clean_code:
             e['name'] = clean_name
@@ -359,14 +359,14 @@ def delete_enumber(code):
     denied = check_editing_allowed()
     if denied:
         return denied
-    
+
     global enumbers
     # Security: Sanitize code parameter
     clean_code = sanitize_code(code)
-    
+
     if not clean_code:
         return jsonify({'error': 'Invalid code format'}), 400
-    
+
     for i, e in enumerate(enumbers):
         if e['code'] == clean_code:
             removed = enumbers.pop(i)
