@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>E-Number Lookup</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root {
     --bg-color: #f8f9fa;
@@ -389,6 +390,8 @@
     select, .theme-toggle {
       width: 100%;
     }
+    
+    
   }
   
   /* Large screen optimizations */
@@ -420,61 +423,437 @@
       max-width: 1000px;
     }
   }
+
+  /* Print Styles */
+  @media print {
+    * {
+      background: white !important;
+      color: black !important;
+      box-shadow: none !important;
+    }
+    
+    body {
+      font-size: 12pt;
+      line-height: 1.4;
+    }
+    
+    .container {
+      padding: 0;
+      max-width: none;
+    }
+    
+    .search-container,
+    .controls-group,
+    .theme-toggle,
+    #export-csv,
+    .results-info,
+    #error-container,
+    #loading,
+    #chart-container {
+      display: none !important;
+    }
+    
+    h1 {
+      font-size: 18pt;
+      margin-bottom: 1rem;
+      page-break-after: avoid;
+    }
+    
+    .table-container {
+      border: none;
+      box-shadow: none;
+      border-radius: 0;
+    }
+    
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: auto;
+    }
+    
+    th, td {
+      border: 1px solid #000;
+      padding: 0.5rem;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+    
+    th {
+      background: #f0f0f0 !important;
+      font-weight: bold;
+    }
+    
+    tr {
+      page-break-inside: avoid;
+    }
+    
+    a {
+      text-decoration: underline;
+      color: black !important;
+    }
+    
+    a:after {
+      content: " (" attr(href) ")";
+      font-size: 9pt;
+      font-style: italic;
+    }
+    
+    .print-header {
+      display: block !important;
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 10pt;
+    }
+  }
+
+  /* Accessibility Improvements */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: var(--info-color);
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    border-radius: 4px;
+    z-index: 1000;
+    transition: top 0.3s;
+  }
+
+  .skip-link:focus {
+    top: 6px;
+  }
+
+  /* Focus indicators */
+  button:focus,
+  input:focus,
+  select:focus,
+  a:focus {
+    outline: 2px solid var(--info-color);
+    outline-offset: 2px;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    :root {
+      --text-color: #000;
+      --bg-color: #fff;
+      --table-border: #000;
+      --input-border: #000;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Enhanced visual elements */
+  .visual-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    animation: pulse 2s infinite;
+  }
+
+  .safe { background: linear-gradient(135deg, #4ade80, #22c55e); }
+  .caution { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+  .warning { background: linear-gradient(135deg, #f87171, #ef4444); }
+  .unknown { background: linear-gradient(135deg, #94a3b8, #64748b); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200px 0; }
+    100% { background-position: calc(200px + 100%) 0; }
+  }
+
+  /* Enhanced buttons with gradients */
+  .enhanced-button {
+    background: linear-gradient(135deg, var(--info-color), #4da6ff);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .enhanced-button:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .enhanced-button:hover:before {
+    left: 100%;
+  }
+
+  .enhanced-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(13, 110, 253, 0.4);
+  }
+
+  /* Glassmorphism effect */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  [data-theme="dark"] .glass-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    background: linear-gradient(90deg, var(--header-bg) 25%, var(--table-border) 50%, var(--header-bg) 75%);
+    background-size: 200px 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  
+
+  /* Enhanced search with floating label */
+  .floating-label {
+    position: relative;
+  }
+
+  .floating-label input {
+    padding-top: 1.5rem;
+  }
+
+  .floating-label label {
+    position: absolute;
+    left: 1rem;
+    top: 1rem;
+    color: var(--placeholder-color);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    font-size: 1rem;
+  }
+
+  .floating-label input:focus + label,
+  .floating-label input:not(:placeholder-shown) + label {
+    top: 0.3rem;
+    font-size: 0.75rem;
+    color: var(--info-color);
+    font-weight: 600;
+  }
+
+  /* Charts container */
+  .charts-section {
+    margin: 2rem 0;
+    padding: 2rem;
+    background: var(--table-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--table-border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .charts-section:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #4ade80, #22c55e, #3b82f6, #8b5cf6);
+    animation: gradient-shift 3s ease infinite;
+  }
+
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .charts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .charts-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+  }
+
+  .chart-toggle {
+    background: var(--input-bg);
+    color: var(--text-color);
+    border: 2px solid var(--input-border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: var(--shadow);
+  }
+
+  .chart-toggle:hover {
+    background: var(--header-bg);
+    border-color: var(--info-color);
+  }
+
+  .chart-container {
+    position: relative;
+    height: 400px;
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .charts-section {
+      margin: 1rem -0.5rem;
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    
+    .charts-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .chart-container {
+      height: 300px;
+    }
+  }
 </style>
 </head>
 <body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
 <div class="container">
-  <h1>E-Number Lookup</h1>
+  <div class="print-header" style="display: none;">
+    E-Number Lookup Reference - Printed on <span id="print-date"></span>
+  </div>
+  <h1 id="main-heading">E-Number Lookup</h1>
   
+  
+
   <div class="search-container">
-    <div class="search-input-group">
-      <input type="text" id="search" class="search-input" placeholder="Search by E-number or name..." maxlength="100">
-      <button id="clear-search" class="clear-search" title="Clear search">×</button>
+    <div class="search-input-group floating-label">
+      <input type="text" id="search" class="search-input" placeholder=" " maxlength="100" aria-describedby="search-help">
+      <label for="search">🔍 Search by E-number or name... (Ctrl+K)</label>
+      <div id="search-help" class="sr-only">Use this search box to find E-numbers by code or name. Results will update as you type.</div>
+      <button id="clear-search" class="clear-search" title="Clear search" aria-label="Clear search input">✕</button>
     </div>
     <div class="controls-group">
-      <select id="category-filter" class="category-filter">
-        <option value="">All Categories</option>
-        <option value="Colors">Colors</option>
-        <option value="Preservatives">Preservatives</option>
-        <option value="Antioxidants & Acidity Regulators">Antioxidants & Acidity Regulators</option>
-        <option value="Thickeners, Stabilizers & Emulsifiers">Thickeners, Stabilizers & Emulsifiers</option>
-        <option value="Acidity Regulators & Anti-caking Agents">Acidity Regulators & Anti-caking Agents</option>
-        <option value="Flavor Enhancers">Flavor Enhancers</option>
-        <option value="Antibiotics">Antibiotics</option>
-        <option value="Glazing Agents, Sweeteners & Others">Glazing Agents, Sweeteners & Others</option>
-        <option value="Additional Chemicals">Additional Chemicals</option>
-        <option value="Modified Starches">Modified Starches</option>
-        <option value="Other">Other</option>
+      <label for="category-filter" class="sr-only">Filter by category</label>
+      <select id="category-filter" class="category-filter" aria-label="Filter by category">
+        <option value="">🔍 All Categories</option>
+        <option value="Colors">🎨 Colors</option>
+        <option value="Preservatives">🛡️ Preservatives</option>
+        <option value="Antioxidants & Acidity Regulators">⚗️ Antioxidants & Acidity Regulators</option>
+        <option value="Thickeners, Stabilizers & Emulsifiers">🥄 Thickeners, Stabilizers & Emulsifiers</option>
+        <option value="Acidity Regulators & Anti-caking Agents">🧪 Acidity Regulators & Anti-caking Agents</option>
+        <option value="Flavor Enhancers">🍋 Flavor Enhancers</option>
+        <option value="Antibiotics">💊 Antibiotics</option>
+        <option value="Glazing Agents, Sweeteners & Others">✨ Glazing Agents, Sweeteners & Others</option>
+        <option value="Additional Chemicals">🧬 Additional Chemicals</option>
+        <option value="Modified Starches">🌾 Modified Starches</option>
+        <option value="Other">📦 Other</option>
       </select>
-      <select id="sort">
-        <option value="code">Sort by E-Number</option>
-        <option value="name">Sort by Name</option>
+      <label for="sort" class="sr-only">Sort options</label>
+      <select id="sort" aria-label="Sort results">
+        <option value="code">📊 Sort by E-Number</option>
+        <option value="name">🔤 Sort by Name</option>
       </select>
-      <button id="theme-toggle" class="theme-toggle">Dark Mode</button>
+      <button id="theme-toggle" class="enhanced-button" aria-label="Toggle dark mode">🌙 Dark Mode</button>
+      <button id="export-csv" class="enhanced-button" title="Export current results to CSV (Ctrl+E)" aria-label="Export results to CSV">📁 Export CSV</button>
     </div>
   </div>
 
-  <div id="results-info" class="results-info"></div>
-  <div id="error-container"></div>
-  <div id="loading" class="loading" style="display:none;">Loading...</div>
-  
+  <div id="results-info" class="results-info" role="status" aria-live="polite"></div>
+  <div id="error-container" role="alert" aria-live="assertive"></div>
+  <div id="loading" class="loading" style="display:none;" role="status" aria-live="polite">Loading...</div>
 
+  <section class="charts-section" id="charts-section" aria-labelledby="charts-title">
+    <div class="charts-header">
+      <h2 class="charts-title" id="charts-title">Data Visualization</h2>
+      <button id="chart-toggle" class="chart-toggle" aria-expanded="true" aria-controls="chart-container">Hide Charts</button>
+    </div>
+    <div id="chart-container" class="chart-container" aria-label="E-Number category distribution chart">
+      <canvas id="categoryChart" role="img" aria-label="Chart showing distribution of E-numbers by category"></canvas>
+    </div>
+  </section>
 
-  <div class="table-container">
-    <table id="etable">
-      <thead>
-        <tr><th>E-Number</th><th>Name</th><th>Category</th><th>Open Food Facts</th><th>Wikidata</th><th>Research</th></tr>
-      </thead>
-      <tbody id="tbody">
-      </tbody>
-    </table>
-  </div>
+  <main id="main-content">
+    <div class="table-container">
+      <table id="etable" role="table" aria-label="E-Number lookup results">
+        <thead>
+          <tr>
+            <th scope="col">E-Number</th>
+            <th scope="col">Name</th>
+            <th scope="col">Category</th>
+            <th scope="col">Open Food Facts</th>
+            <th scope="col">Wikidata</th>
+            <th scope="col">Research</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+        </tbody>
+      </table>
+    </div>
+  </main>
 </div>
 
 <script>
 let enumbers = [];
 let searchTimeout;
 let currentSort = 'code';
+let categoryChart = null;
+let chartsVisible = true;
 
 // E-number category mapping
 function getCategory(code) {
@@ -520,14 +899,46 @@ function isValidUrl(string) {
   }
 }
 
+// Get safety level based on E-number
+function getSafetyLevel(code) {
+  if (!code) return 'unknown';
+  
+  const num = parseInt(code.replace(/[^0-9]/g, ''));
+  
+  // Generally recognized as safe colors and preservatives
+  if ([100, 101, 102, 104, 110, 120, 140, 141, 150, 153, 160, 161, 162, 163, 170, 171, 172, 200, 202, 203, 210, 211, 212, 213, 220, 221, 222, 223, 224, 225, 226, 227, 228, 260, 270, 280, 290, 300, 301, 302, 303, 304, 306, 307, 308, 309, 310, 311, 312, 315, 316, 320, 321, 322, 325, 326, 327, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 350, 351, 352, 353, 354, 355, 356, 357, 363, 380, 381, 385, 400, 401, 402, 403, 404, 405, 406, 407, 410, 412, 413, 414, 415, 416, 417, 418, 420, 421, 422, 440, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 500, 501, 503, 504, 507, 508, 509, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 575, 576, 577, 578, 579, 585, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631, 632, 633, 634, 635, 636, 637, 640, 641, 900, 901, 902, 903, 904, 905, 912, 914, 920, 921, 922, 924, 925, 926, 927, 928, 938, 939, 941, 942, 943, 944, 948, 950, 951, 952, 953, 954, 955, 957, 959, 960, 961, 962, 963, 964, 965, 966, 967, 968, 999].includes(num)) {
+    return 'safe';
+  }
+  
+  // Caution - some concerns but generally acceptable
+  if ([103, 105, 111, 122, 123, 124, 125, 126, 127, 128, 129, 131, 132, 133, 142, 151, 154, 155, 180, 201, 214, 215, 216, 217, 218, 219, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 242, 249, 250, 251, 252, 260, 261, 262, 263, 264, 265, 266, 267, 270, 290, 296, 297, 365, 380, 432, 433, 434, 435, 436, 442, 444, 445, 450, 451, 452, 459, 481, 482, 483, 491, 492, 493, 494, 495, 536, 538, 541, 551, 552, 553, 554, 555, 556, 558, 559, 570, 621, 951, 952].includes(num)) {
+    return 'caution';
+  }
+  
+  // Warning - potential health concerns
+  if ([102, 107, 110, 122, 123, 124, 127, 128, 129, 131, 132, 133, 142, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 230, 231, 232, 233, 249, 250, 251, 252, 284, 285, 310, 311, 312, 319, 320, 321, 450, 451, 452, 621, 622, 623, 624, 625].includes(num)) {
+    return 'warning';
+  }
+  
+  return 'unknown';
+}
+
 // Security: Create DOM elements safely instead of using innerHTML
 function createTableRow(entry) {
   const row = document.createElement('tr');
+  row.style.animation = 'fadeIn 0.5s ease-in-out';
   
-  // E-Number cell
+  // E-Number cell with safety indicator
   const codeCell = document.createElement('td');
   codeCell.className = 'e-number';
-  codeCell.textContent = entry.code;
+  
+  const safetyIndicator = document.createElement('span');
+  const safetyLevel = getSafetyLevel(entry.code);
+  safetyIndicator.className = `visual-indicator ${safetyLevel}`;
+  safetyIndicator.title = `Safety level: ${safetyLevel}`;
+  
+  codeCell.appendChild(safetyIndicator);
+  codeCell.appendChild(document.createTextNode(entry.code));
   row.appendChild(codeCell);
   
   // Name cell
@@ -647,14 +1058,20 @@ function hideLoading() {
   document.getElementById('loading').style.display = 'none';
 }
 
+
+
 function renderTable(filter="") {
   const tbody = document.getElementById('tbody');
   const resultsInfo = document.getElementById('results-info');
   
-  // Clear existing rows
-  while (tbody.firstChild) {
-    tbody.removeChild(tbody.firstChild);
-  }
+  // Add skeleton loading effect
+  tbody.innerHTML = '<tr><td colspan="6" class="skeleton" style="height: 50px;"></td></tr>';
+  
+  // Clear existing rows after brief delay for loading effect
+  setTimeout(() => {
+    while (tbody.firstChild) {
+      tbody.removeChild(tbody.firstChild);
+    }
   
   // Security: Escape filter input
   const safeFilter = filter.toLowerCase().trim();
@@ -708,12 +1125,24 @@ function renderTable(filter="") {
     resultsInfo.classList.remove('visible');
   }
   
-  // Create and append rows
+  
+  
+  // Create and append rows with staggered animation
   const fragment = document.createDocumentFragment();
-  limitedEntries.forEach(entry => {
-    fragment.appendChild(createTableRow(entry));
+  limitedEntries.forEach((entry, index) => {
+    const row = createTableRow(entry);
+    row.style.animationDelay = `${index * 0.05}s`;
+    // Make cells focusable for keyboard navigation
+    row.querySelectorAll('td').forEach(cell => {
+      cell.setAttribute('tabindex', '0');
+    });
+    fragment.appendChild(row);
   });
   tbody.appendChild(fragment);
+  
+  // Update chart with filtered data
+  updateChart();
+  }, 300); // Brief delay for loading effect
 }
 
 // Security: Debounced search to prevent excessive API calls
@@ -758,6 +1187,76 @@ document.getElementById('clear-search').addEventListener('click', function() {
   renderTable();
 });
 
+// Keyboard shortcuts and navigation
+document.addEventListener('keydown', function(e) {
+  // Ctrl/Cmd + K to focus search
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('search').focus();
+  }
+  
+  // Escape to clear search
+  if (e.key === 'Escape') {
+    const searchInput = document.getElementById('search');
+    if (searchInput.value) {
+      searchInput.value = '';
+      document.getElementById('category-filter').value = '';
+      document.getElementById('clear-search').classList.remove('visible');
+      renderTable();
+    }
+  }
+  
+  // Ctrl/Cmd + E to export
+  if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+    e.preventDefault();
+    exportToCSV();
+  }
+  
+  // Ctrl/Cmd + D to toggle charts
+  if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+    e.preventDefault();
+    toggleCharts();
+  }
+  
+  // Arrow key navigation for table
+  if (e.target.tagName === 'TD' || e.target.tagName === 'TH') {
+    const currentRow = e.target.parentElement;
+    const currentCell = e.target;
+    const table = document.getElementById('etable');
+    
+    switch(e.key) {
+      case 'ArrowUp':
+        e.preventDefault();
+        const prevRow = currentRow.previousElementSibling;
+        if (prevRow) {
+          const cellIndex = Array.from(currentRow.children).indexOf(currentCell);
+          prevRow.children[cellIndex]?.focus();
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        const nextRow = currentRow.nextElementSibling;
+        if (nextRow) {
+          const cellIndex = Array.from(currentRow.children).indexOf(currentCell);
+          nextRow.children[cellIndex]?.focus();
+        }
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        if (currentCell.previousElementSibling) {
+          currentCell.previousElementSibling.focus();
+        }
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        if (currentCell.nextElementSibling) {
+          currentCell.nextElementSibling.focus();
+        }
+        break;
+    }
+  }
+});
+
 // Theme toggle functionality
 function toggleTheme() {
   const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -765,9 +1264,15 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', newTheme);
   localStorage.setItem('theme', newTheme);
   
-  // Update button text
+  // Update button text with icons
   const button = document.getElementById('theme-toggle');
-  button.textContent = newTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
+  button.textContent = newTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+  
+  // Add a subtle animation
+  button.style.transform = 'scale(0.95)';
+  setTimeout(() => {
+    button.style.transform = 'scale(1)';
+  }, 150);
 }
 
 // Load theme from localStorage on page load
@@ -776,18 +1281,199 @@ function loadTheme() {
   if (savedTheme) {
     document.documentElement.setAttribute('data-theme', savedTheme);
     const button = document.getElementById('theme-toggle');
-    button.textContent = savedTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
+    button.textContent = savedTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+  } else {
+    const button = document.getElementById('theme-toggle');
+    button.textContent = '🌙 Dark Mode';
   }
+}
+
+// Chart functionality
+function createCategoryChart(data) {
+  const ctx = document.getElementById('categoryChart');
+  if (!ctx || !data.length) return;
+
+  // Count categories
+  const categoryCounts = {};
+  data.forEach(entry => {
+    const category = getCategory(entry.code);
+    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+  });
+
+  // Sort by count for better visualization
+  const sortedCategories = Object.entries(categoryCounts)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10); // Show top 10 categories
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  
+  const chartData = {
+    labels: sortedCategories.map(([category]) => category),
+    datasets: [{
+      label: 'Number of E-Numbers',
+      data: sortedCategories.map(([, count]) => count),
+      backgroundColor: [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+        '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+      ],
+      borderColor: isDark ? '#fff' : '#333',
+      borderWidth: 1
+    }]
+  };
+
+  const config = {
+    type: 'doughnut',
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: isDark ? '#e9ecef' : '#333',
+            padding: 20,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.parsed;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((value / total) * 100).toFixed(1);
+              return `${label}: ${value} (${percentage}%)`;
+            }
+          }
+        }
+      },
+      animation: {
+        animateRotate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      }
+    }
+  };
+
+  if (categoryChart) {
+    categoryChart.destroy();
+  }
+  
+  categoryChart = new Chart(ctx, config);
+}
+
+function updateChart() {
+  if (!chartsVisible || !enumbers.length) return;
+  
+  const currentFilter = document.getElementById('search').value.toLowerCase().trim();
+  const selectedCategory = document.getElementById('category-filter').value;
+  
+  let filteredEntries = enumbers.filter(e => 
+    e.code.toLowerCase().includes(currentFilter) || 
+    e.name.toLowerCase().includes(currentFilter)
+  );
+  
+  if (selectedCategory) {
+    filteredEntries = filteredEntries.filter(e => getCategory(e.code) === selectedCategory);
+  }
+  
+  createCategoryChart(filteredEntries);
+}
+
+function toggleCharts() {
+  chartsVisible = !chartsVisible;
+  const container = document.getElementById('chart-container');
+  const button = document.getElementById('chart-toggle');
+  
+  if (chartsVisible) {
+    container.style.display = 'block';
+    button.textContent = 'Hide Charts';
+    button.setAttribute('aria-expanded', 'true');
+    updateChart();
+  } else {
+    container.style.display = 'none';
+    button.textContent = 'Show Charts';
+    button.setAttribute('aria-expanded', 'false');
+  }
+}
+
+// Export to CSV functionality
+function exportToCSV() {
+  const csvContent = generateCSV();
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'enumbers.csv');
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function generateCSV() {
+  const headers = ['E-Number', 'Name', 'Category', 'Open Food Facts URL', 'Wikidata URL'];
+  const csvRows = [headers.join(',')];
+  
+  const currentFilter = document.getElementById('search').value.toLowerCase().trim();
+  const selectedCategory = document.getElementById('category-filter').value;
+  
+  let filteredEntries = enumbers.filter(e => 
+    e.code.toLowerCase().includes(currentFilter) || 
+    e.name.toLowerCase().includes(currentFilter)
+  );
+  
+  if (selectedCategory) {
+    filteredEntries = filteredEntries.filter(e => getCategory(e.code) === selectedCategory);
+  }
+  
+  filteredEntries.forEach(entry => {
+    const category = getCategory(entry.code);
+    const offUrl = entry.openfoodfacts_additive?.url || '';
+    const wikiUrl = entry.openfoodfacts_additive?.sameAs?.[0] || '';
+    
+    const row = [
+      `"${entry.code}"`,
+      `"${entry.name.replace(/"/g, '""')}"`,
+      `"${category}"`,
+      `"${offUrl}"`,
+      `"${wikiUrl}"`
+    ];
+    csvRows.push(row.join(','));
+  });
+  
+  return csvRows.join('\n');
 }
 
 // Initialize theme and event listeners when DOM is ready
 function initializeTheme() {
   loadTheme();
-  // Add event listener only once
+  
+  // Set print date
+  document.getElementById('print-date').textContent = new Date().toLocaleDateString();
+  
+  // Add event listeners
   const themeButton = document.getElementById('theme-toggle');
   if (themeButton) {
     themeButton.addEventListener('click', toggleTheme);
   }
+  
+  const exportButton = document.getElementById('export-csv');
+  if (exportButton) {
+    exportButton.addEventListener('click', exportToCSV);
+  }
+  
+  const chartToggleButton = document.getElementById('chart-toggle');
+  if (chartToggleButton) {
+    chartToggleButton.addEventListener('click', toggleCharts);
+  }
+  
+  // Make table cells focusable for keyboard navigation
+  setTimeout(() => {
+    const tableCells = document.querySelectorAll('#etable td, #etable th');
+    tableCells.forEach(cell => {
+      cell.setAttribute('tabindex', '0');
+    });
+  }, 100);
 }
 
 // Load theme when DOM is ready
@@ -810,27 +1496,48 @@ function fetchWithTimeout(url, options = {}) {
   });
 }
 
-// Load data from API
+// Load data from API or fallback to local JSON
 showLoading();
-fetchWithTimeout('/api/enumbers')
-  .then(response => {
+
+async function loadData() {
+  try {
+    // First try to load from Flask API
+    const response = await fetchWithTimeout('/api/enumbers');
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        return data;
+      }
+    }
+    throw new Error('API not available');
+  } catch (error) {
+    console.log('API not available, loading from local JSON file');
+    // Fallback to local JSON file
+    const response = await fetchWithTimeout('./enumbers.json');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return response.json();
-  })
-  .then(data => {
+    const data = await response.json();
     if (Array.isArray(data)) {
-      enumbers = data;
-      renderTable();
-      hideError();
-    } else {
-      throw new Error('Invalid data format received');
+      return data;
     }
+    throw new Error('Invalid data format received');
+  }
+}
+
+loadData()
+  .then(data => {
+    enumbers = data;
+    renderTable();
+    hideError();
+    // Initialize charts after data is loaded
+    setTimeout(() => {
+      updateChart();
+    }, 100);
   })
   .catch(error => {
     console.error('Error loading E-numbers:', error);
-    showError('Failed to load E-number data. Please try refreshing the page.');
+    showError('Failed to load E-number data. Please check your connection and try refreshing the page.');
   })
   .finally(() => {
     hideLoading();
